@@ -1,0 +1,45 @@
+---
+description: Convenciones Laravel API REST para el backend de PrimaveraAPP
+globs: backend/**/*.php
+alwaysApply: false
+---
+
+# Backend Laravel
+
+## Arquitectura
+
+- API REST en `backend/routes/api.php`; prefijo `/api`
+- Controllers delgados; lógica de negocio en Services o Actions cuando crezca
+- Form Requests para validación; API Resources para respuestas JSON
+- Transacciones DB al registrar compras, ventas, transformaciones y movimientos de inventario/insumos
+
+## Autenticación
+
+- Laravel Sanctum: login email/contraseña, tokens para SPA
+- Campo `rol` en users (`admin` | `colaborador`); MVP solo admin activo
+
+## Inventario (regla crítica)
+
+Toda operación que afecte stock debe:
+1. Actualizar `inventarios.cantidad_kg`
+2. Crear registro en `movimientos_inventario` con tipo y referencia
+
+Ventas: validar stock; si excede, devolver warning pero permitir `force: true`.
+
+## Endpoints sugeridos por módulo
+
+```
+POST   /api/login, /api/logout, GET /api/user
+CRUD   /api/productos, /api/precios, /api/proveedores, /api/clientes
+POST   /api/compras, /api/ventas, /api/transformaciones
+PATCH  /api/inventario/{producto}/ajuste
+CRUD   /api/insumos, /api/labores
+GET    /api/reportes/{tipo}?desde=&hasta=
+```
+
+## Convenciones
+
+- Respuestas JSON: `{ "data": ... }` o `{ "message": "...", "errors": ... }`
+- Códigos HTTP estándar (422 validación, 403 auth)
+- Seeders con productos de la finca para desarrollo
+- Mensajes de error en **español**
