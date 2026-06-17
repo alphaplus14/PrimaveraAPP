@@ -1,0 +1,39 @@
+---
+description: Convenciones React + Tailwind para el frontend de PrimaveraAPP
+globs: frontend/**/*.{jsx,js,css}
+alwaysApply: false
+---
+
+# Frontend React
+
+## Stack y estructura
+
+- React 19 + Vite en `frontend/`; JavaScript (no TypeScript por ahora)
+- Tailwind CSS 4; mobile-first, touch-friendly
+- Consumir API Laravel vía `fetch` o cliente HTTP centralizado en `src/api/`
+
+## Diseño
+
+```css
+/* Colores de marca */
+--color-primary: #1a365d;   /* azul oscuro */
+--color-accent:  #f56523;   /* naranja */
+```
+
+- Formularios cortos para ventas/compras del día (pocos taps en móvil)
+- Inputs numéricos claros para kg y precios; totales calculados en vivo
+- Feedback visible: loading, errores de validación, advertencia de stock bajo
+
+## Patrones de UI por módulo
+
+- **Precios:** tabla editable; detal y mayorista en columnas; guardar masivo
+- **Ventas/compras:** fecha (default hoy), selector producto, cantidad kg, precio autocompletado
+- **Inventario:** lista con stock actual; modal para ajuste con motivo obligatorio
+- **Reportes:** filtros por periodo; tablas exportables
+
+## Convenciones de código
+
+- Componentes funcionales; hooks para lógica reutilizable (`useAuth`, `useApi`)
+- Rutas con React Router cuando se implemente navegación
+- Textos de UI en **español**; formatos de moneda/fecha locale `es-CO`
+- Optimizar para conexiones lentas: requests mínimos, cache local ligero si aplica

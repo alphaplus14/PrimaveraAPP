@@ -1,0 +1,33 @@
+---
+description: Contexto del negocio, alcance MVP y módulos de PrimaveraAPP
+alwaysApply: true
+---
+
+# PrimaveraAPP — Contexto del proyecto
+
+## Negocio
+
+Finca familiar que produce cultivos propios, compra productos a terceros para reventa y transforma fruta excedente en pulpas. Personal: administrador + colaborador (roles futuros). Todo se vende **por kg**, al **detal** o **mayorista** (tiendas, restaurantes, galería, particulares).
+
+### Cultivos propios
+Plátano, banano, yuca, limón, mandarina, naranja, arracacha, fríjol, cidra, aguacate. Café: pelado y mojado (sin secar) a compradores externos.
+
+### Comprados a terceros
+Vecinos: plátano, banano, limón, maracuyá, aguacate. Galería: guayaba dulce/ácida, mango Tommy, fresa, tomate de árbol/chonto, lulo, limón pajarito, papaya.
+
+### Pulpas
+Compradas: mora, guanábana, maracuyá. Propias (fruta por dañarse): guayaba ácida, tomate de árbol, guayaba dulce, lulo.
+
+## Reglas de dominio clave
+
+- Precios detal y mayorista son **independientes** y cambian con frecuencia; guardar historial con fecha de vigencia.
+- Inventario se actualiza con compras (+), ventas (-), transformaciones y ajustes manuales (mermas, con motivo).
+- Ventas: autocompletar precio según tipo; **advertir** si cantidad > stock pero **permitir forzar**.
+- Transformación: reduce fruta origen, aumenta pulpa resultante.
+- Labores pueden consumir varios insumos; cada uso descuenta stock de insumo.
+
+## Alcance MVP
+
+- Web responsive, un usuario admin, auth email/contraseña.
+- Modelo de datos preparado para roles futuros (no implementar permisos aún).
+- Priorizar formularios rápidos para registro diario desde celular en campo.

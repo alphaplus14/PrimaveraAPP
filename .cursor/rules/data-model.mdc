@@ -1,0 +1,40 @@
+---
+description: Modelo de datos Eloquent para finca — entidades, campos y relaciones
+globs: backend/database/**/*.php,backend/app/Models/**/*.php
+alwaysApply: false
+---
+
+# Modelo de datos
+
+Usar nombres de tablas/columnas en **snake_case** (convención Laravel). Unidad de productos: **kg**.
+
+## Entidades principales
+
+| Modelo | Campos clave |
+|--------|--------------|
+| Producto | nombre, categoria (propio/comprado/pulpa), unidad_medida, activo, es_fruta_para_pulpa, pulpa_relacionada_id |
+| Precio | producto_id, tipo (detal/mayorista), valor, fecha_vigencia_desde |
+| Inventario | producto_id, cantidad_kg, fecha_actualizacion — 1 registro por producto |
+| MovimientoInventario | producto_id, tipo (compra/venta/transformacion/ajuste), cantidad_kg, fecha, referencia_id |
+| Proveedor | nombre, tipo (vecino/galeria/otro) |
+| Cliente | nombre, tipo (tienda/restaurante/galeria/particular) |
+| Compra | fecha, proveedor_id, producto_id, cantidad_kg, precio_unitario, total, observaciones |
+| Venta | fecha, cliente_id, producto_id, cantidad_kg, tipo_venta, precio_unitario, total |
+| Transformacion | fecha, producto_origen_id, cantidad_fruta_kg, producto_pulpa_id, cantidad_pulpa_kg |
+| Insumo | nombre, tipo (quimico/abono), unidad_medida, stock_actual |
+| Labor | fecha, tipo_labor, cultivo, responsable, descripcion |
+| LaborInsumo | labor_id, insumo_id, cantidad_usada |
+| User | nombre, email, password, rol (admin/colaborador) |
+
+## Relaciones esperadas
+
+- Producto `belongsTo` Producto (pulpa_relacionada), `hasMany` Precio, `hasOne` Inventario
+- Compra/Venta `belongsTo` Producto, Proveedor/Cliente
+- Labor `hasMany` LaborInsumo `belongsTo` Insumo
+- MovimientoInventario polimórfico o con referencia_id hacia compra/venta/transformacion/ajuste
+
+## Validaciones
+
+- cantidad_kg, precios y totales siempre **positivos**
+- total = cantidad_kg × precio_unitario (calculado en backend)
+- fechas válidas; registrar motivo en ajustes de inventario
