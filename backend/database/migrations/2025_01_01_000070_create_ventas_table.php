@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('ventas', function (Blueprint $table) {
             $table->id();
             $table->date('fecha');
-            $table->foreignId('cliente_id')->constrained()->restrictOnDelete();
+            $table->foreignId('cliente_id')->constrained('clientes')->restrictOnDelete();
             $table->foreignId('producto_id')->constrained()->restrictOnDelete();
             $table->decimal('cantidad_kg', 10, 3);
             $table->enum('tipo_venta', ['detal', 'mayorista']);
