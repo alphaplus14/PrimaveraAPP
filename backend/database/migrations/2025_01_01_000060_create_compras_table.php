@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('compras', function (Blueprint $table) {
             $table->id();
             $table->date('fecha');
-            $table->foreignId('proveedor_id')->constrained()->restrictOnDelete();
+            $table->foreignId('proveedor_id')->constrained('proveedores')->restrictOnDelete();
             $table->foreignId('producto_id')->constrained()->restrictOnDelete();
             $table->decimal('cantidad_kg', 10, 3);
             $table->decimal('precio_unitario', 10, 2);
