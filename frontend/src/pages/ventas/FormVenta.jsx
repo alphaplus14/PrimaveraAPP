@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { crearVenta, getClientes, crearCliente } from '../../api/ventas'
 import { getProductos, getPrecioActual } from '../../api/productos'
 import { getInventario } from '../../api/inventario'
+import SelectBuscable from '../../components/ui/SelectBuscable'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 
@@ -23,7 +24,6 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [nuevoCliente, setNuevoCliente] = useState('')
-  const [mostrarNuevoCliente, setMostrarNuevoCliente] = useState(false)
   const [advertencias, setAdvertencias] = useState({}) // lineaId -> stock disponible
   const [confirmarForzar, setConfirmarForzar] = useState(false)
 
@@ -92,14 +92,11 @@ export default function FormVenta({ onGuardado, onCerrar }) {
     return sum + t
   }, 0)
 
-  const handleCrearCliente = async () => {
-    if (!nuevoCliente.trim()) return
+  const handleCrearCliente = async (nombre) => {
     try {
-      const { data } = await crearCliente({ nombre: nuevoCliente.trim(), tipo: 'particular' })
+      const { data } = await crearCliente({ nombre, tipo: 'particular' })
       setClientes((prev) => [...prev, data.data])
       setCabecera((c) => ({ ...c, cliente_id: String(data.data.id) }))
-      setNuevoCliente('')
-      setMostrarNuevoCliente(false)
     } catch {
       setError('No se pudo crear el cliente.')
     }
@@ -158,39 +155,13 @@ export default function FormVenta({ onGuardado, onCerrar }) {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Cliente *</label>
-          {!mostrarNuevoCliente ? (
-            <div className="flex gap-1">
-              <select
-                value={cabecera.cliente_id}
-                onChange={(e) => setCabecera((c) => ({ ...c, cliente_id: e.target.value }))}
-                className={`${inputClass} flex-1`}
-              >
-                <option value="">Seleccionar...</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setMostrarNuevoCliente(true)}
-                className="px-2 border border-gray-300 rounded-lg text-gray-400 hover:text-[#f56523] hover:border-[#f56523] text-lg leading-none"
-              >+</button>
-            </div>
-          ) : (
-            <div className="flex gap-1">
-              <input
-                autoFocus
-                type="text"
-                placeholder="Nombre..."
-                value={nuevoCliente}
-                onChange={(e) => setNuevoCliente(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCrearCliente()}
-                className={`${inputClass} flex-1`}
-              />
-              <button onClick={handleCrearCliente} className="px-2 bg-[#1a365d] text-white rounded-lg text-sm">✓</button>
-              <button onClick={() => setMostrarNuevoCliente(false)} className="px-2 border border-gray-300 rounded-lg text-sm text-gray-400">×</button>
-            </div>
-          )}
+          <SelectBuscable
+            opciones={clientes.map((c) => ({ value: c.id, label: c.nombre }))}
+            value={cabecera.cliente_id}
+            onChange={(v) => setCabecera((c) => ({ ...c, cliente_id: v }))}
+            placeholder="Buscar cliente..."
+            onCrear={handleCrearCliente}
+          />
         </div>
       </div>
 
@@ -223,16 +194,12 @@ export default function FormVenta({ onGuardado, onCerrar }) {
             </div>
 
             {/* Producto */}
-            <select
+            <SelectBuscable
+              opciones={productos.map((p) => ({ value: p.id, label: p.nombre }))}
               value={linea.producto_id}
-              onChange={(e) => actualizarLinea(linea.id, 'producto_id', e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Seleccionar producto...</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
+              onChange={(v) => actualizarLinea(linea.id, 'producto_id', v)}
+              placeholder="Buscar producto..."
+            />
 
             {/* Tipo + Cantidad + Precio en fila */}
             <div className="grid grid-cols-3 gap-2">
