@@ -8,6 +8,9 @@ import Productos from './pages/productos/Productos'
 import Inventario from './pages/inventario/Inventario'
 import Compras from './pages/compras/Compras'
 import Ventas from './pages/ventas/Ventas'
+import Transformaciones from './pages/transformaciones/Transformaciones'
+import Labores from './pages/labores/Labores'
+import Reportes from './pages/reportes/Reportes'
 
 export default function App() {
   const { user } = useAuth()
@@ -34,6 +37,9 @@ export default function App() {
         <Route path="inventario" element={<Inventario />} />
         <Route path="compras" element={<Compras />} />
         <Route path="ventas" element={<Ventas />} />
+        <Route path="transformaciones" element={<Transformaciones />} />
+        <Route path="labores" element={<Labores />} />
+        <Route path="reportes" element={<Reportes />} />
       </Route>
 
       {/* Cualquier ruta desconocida va al inicio */}

@@ -2,11 +2,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const nav = [
-  { to: '/',            label: 'Dashboard',   icon: '📊' },
-  { to: '/productos',   label: 'Productos',   icon: '🌿' },
-  { to: '/inventario',  label: 'Inventario',  icon: '📦' },
-  { to: '/compras',     label: 'Compras',     icon: '🛒' },
-  { to: '/ventas',      label: 'Ventas',      icon: '💰' },
+  { to: '/',                  label: 'Dashboard',        icon: '📊' },
+  { to: '/productos',         label: 'Productos',        icon: '🌿' },
+  { to: '/inventario',        label: 'Inventario',       icon: '📦' },
+  { to: '/compras',           label: 'Compras',          icon: '🛒' },
+  { to: '/ventas',            label: 'Ventas',           icon: '💰' },
+  { to: '/transformaciones',  label: 'Transformaciones', icon: '🧃' },
+  { to: '/labores',           label: 'Labores',          icon: '🌾' },
+  { to: '/reportes',          label: 'Reportes',         icon: '📈' },
 ]
 
 export default function Layout() {
