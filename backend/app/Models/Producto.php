@@ -9,56 +9,58 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Producto extends Model
 {
+    protected $table = 'products';
+
     protected $fillable = [
-        'nombre',
-        'categoria',
-        'unidad_medida',
-        'activo',
-        'es_fruta_para_pulpa',
-        'pulpa_relacionada_id',
+        'name',
+        'category',
+        'unit_of_measure',
+        'is_active',
+        'is_fruit_for_pulp',
+        'related_pulp_id',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
-        'es_fruta_para_pulpa' => 'boolean',
+        'is_active' => 'boolean',
+        'is_fruit_for_pulp' => 'boolean',
     ];
 
     public function pulpaRelacionada(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'pulpa_relacionada_id');
+        return $this->belongsTo(Producto::class, 'related_pulp_id');
     }
 
     public function inventario(): HasOne
     {
-        return $this->hasOne(Inventario::class);
+        return $this->hasOne(Inventario::class, 'product_id');
     }
 
     public function precios(): HasMany
     {
-        return $this->hasMany(Precio::class);
+        return $this->hasMany(Precio::class, 'product_id');
     }
 
-    public function precioActual(string $tipo): ?Precio
+    public function precioActual(string $type): ?Precio
     {
         return $this->precios()
-            ->where('tipo', $tipo)
-            ->where('fecha_vigencia_desde', '<=', now()->toDateString())
-            ->orderByDesc('fecha_vigencia_desde')
+            ->where('type', $type)
+            ->where('effective_from', '<=', now()->toDateString())
+            ->orderByDesc('effective_from')
             ->first();
     }
 
     public function movimientos(): HasMany
     {
-        return $this->hasMany(MovimientoInventario::class);
+        return $this->hasMany(MovimientoInventario::class, 'product_id');
     }
 
     public function compras(): HasMany
     {
-        return $this->hasMany(Compra::class);
+        return $this->hasMany(Compra::class, 'product_id');
     }
 
     public function ventas(): HasMany
     {
-        return $this->hasMany(Venta::class);
+        return $this->hasMany(Venta::class, 'product_id');
     }
 }

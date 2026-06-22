@@ -8,20 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('precios', function (Blueprint $table) {
+        Schema::create('prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('producto_id')->constrained()->cascadeOnDelete();
-            $table->enum('tipo', ['detal', 'mayorista']);
-            $table->decimal('valor', 10, 2);
-            $table->date('fecha_vigencia_desde');
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->enum('type', ['retail', 'wholesale']);
+            $table->decimal('amount', 10, 2);
+            $table->date('effective_from');
             $table->timestamps();
 
-            $table->index(['producto_id', 'tipo', 'fecha_vigencia_desde']);
+            $table->index(['product_id', 'type', 'effective_from']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('precios');
+        Schema::dropIfExists('prices');
     }
 };

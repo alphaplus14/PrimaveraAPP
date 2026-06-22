@@ -8,17 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('inventarios', function (Blueprint $table) {
+        Schema::create('inventories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('producto_id')->unique()->constrained()->cascadeOnDelete();
-            $table->decimal('cantidad_kg', 10, 3)->default(0);
-            $table->timestamp('fecha_actualizacion')->nullable();
+            $table->foreignId('product_id')->unique()->constrained()->cascadeOnDelete();
+            $table->decimal('quantity_kg', 10, 3)->default(0);
+            $table->timestamp('quantity_updated_at')->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('inventarios');
+        Schema::dropIfExists('inventories');
     }
 };

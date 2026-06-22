@@ -13,7 +13,7 @@ class ProductoController extends Controller
     public function index(): JsonResponse
     {
         $productos = Producto::with(['inventario', 'pulpaRelacionada'])
-            ->orderBy('nombre')
+            ->orderBy('name')
             ->get();
 
         return response()->json(['data' => $productos]);
@@ -22,26 +22,25 @@ class ProductoController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'categoria' => 'required|in:propio,comprado,pulpa',
-            'unidad_medida' => 'sometimes|string|max:20',
-            'activo' => 'sometimes|boolean',
-            'es_fruta_para_pulpa' => 'sometimes|boolean',
-            'pulpa_relacionada_id' => 'nullable|exists:productos,id',
+            'name' => 'required|string|max:255',
+            'category' => 'required|in:own,purchased,pulp',
+            'unit_of_measure' => 'sometimes|string|max:20',
+            'is_active' => 'sometimes|boolean',
+            'is_fruit_for_pulp' => 'sometimes|boolean',
+            'related_pulp_id' => 'nullable|exists:products,id',
         ], [
-            'nombre.required' => 'El nombre del producto es obligatorio.',
-            'categoria.required' => 'La categoría es obligatoria.',
-            'categoria.in' => 'La categoría debe ser: propio, comprado o pulpa.',
-            'pulpa_relacionada_id.exists' => 'La pulpa relacionada no existe.',
+            'name.required' => 'El nombre del producto es obligatorio.',
+            'category.required' => 'La categoría es obligatoria.',
+            'category.in' => 'La categoría debe ser: own, purchased o pulp.',
+            'related_pulp_id.exists' => 'La pulpa relacionada no existe.',
         ]);
 
         $producto = Producto::create($data);
 
-        // Crear registro de inventario inicial
         Inventario::create([
-            'producto_id' => $producto->id,
-            'cantidad_kg' => 0,
-            'fecha_actualizacion' => now(),
+            'product_id' => $producto->id,
+            'quantity_kg' => 0,
+            'quantity_updated_at' => now(),
         ]);
 
         return response()->json(['data' => $producto->load('inventario')], 201);
@@ -57,12 +56,12 @@ class ProductoController extends Controller
     public function update(Request $request, Producto $producto): JsonResponse
     {
         $data = $request->validate([
-            'nombre' => 'sometimes|string|max:255',
-            'categoria' => 'sometimes|in:propio,comprado,pulpa',
-            'unidad_medida' => 'sometimes|string|max:20',
-            'activo' => 'sometimes|boolean',
-            'es_fruta_para_pulpa' => 'sometimes|boolean',
-            'pulpa_relacionada_id' => 'nullable|exists:productos,id',
+            'name' => 'sometimes|string|max:255',
+            'category' => 'sometimes|in:own,purchased,pulp',
+            'unit_of_measure' => 'sometimes|string|max:20',
+            'is_active' => 'sometimes|boolean',
+            'is_fruit_for_pulp' => 'sometimes|boolean',
+            'related_pulp_id' => 'nullable|exists:products,id',
         ]);
 
         $producto->update($data);
@@ -72,7 +71,7 @@ class ProductoController extends Controller
 
     public function destroy(Producto $producto): JsonResponse
     {
-        $producto->update(['activo' => false]);
+        $producto->update(['is_active' => false]);
 
         return response()->json(['message' => 'Producto desactivado correctamente.']);
     }

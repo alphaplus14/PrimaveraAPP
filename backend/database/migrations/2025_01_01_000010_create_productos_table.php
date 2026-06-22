@@ -8,20 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('productos', function (Blueprint $table) {
+        Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('categoria', ['propio', 'comprado', 'pulpa']);
-            $table->string('unidad_medida')->default('kg');
-            $table->boolean('activo')->default(true);
-            $table->boolean('es_fruta_para_pulpa')->default(false);
-            $table->foreignId('pulpa_relacionada_id')->nullable()->constrained('productos')->nullOnDelete();
+            $table->string('name');
+            $table->enum('category', ['own', 'purchased', 'pulp']);
+            $table->string('unit_of_measure')->default('kg');
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_fruit_for_pulp')->default(false);
+            $table->foreignId('related_pulp_id')->nullable()->constrained('products')->nullOnDelete();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('productos');
+        Schema::dropIfExists('products');
     }
 };

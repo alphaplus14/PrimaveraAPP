@@ -7,6 +7,7 @@ import {
 } from '../../api/reportes'
 import { getProductos } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
+import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
@@ -24,12 +25,6 @@ const PRESETS = [
   { id: 'mes_anterior', label: 'Mes anterior' },
 ]
 
-const TIPO_MOV = {
-  compra:        { label: 'Compra',        color: 'text-blue-600',  bg: 'bg-blue-50' },
-  venta:         { label: 'Venta',         color: 'text-green-600', bg: 'bg-green-50' },
-  transformacion:{ label: 'Transformación',color: 'text-orange-600',bg: 'bg-orange-50' },
-  ajuste:        { label: 'Ajuste',        color: 'text-gray-600',  bg: 'bg-gray-50' },
-}
 
 export default function Reportes() {
   const [tab, setTab] = useState('ventas')
@@ -45,7 +40,7 @@ export default function Reportes() {
   const fetchDatos = useCallback(() => {
     if (tab === 'ventas')      return getReporteVentas(rango)
     if (tab === 'compras')     return getReporteCompras(rango)
-    if (tab === 'movimientos') return getReporteMovimientos({ ...rango, producto_id: productoFiltro || undefined })
+    if (tab === 'movimientos') return getReporteMovimientos({ ...rango, product_id: productoFiltro || undefined })
     return Promise.resolve({ data: { data: null } })
   }, [tab, rango, productoFiltro])
 
@@ -141,7 +136,7 @@ export default function Reportes() {
           >
             <option value="">Todos los productos</option>
             {productos.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         )}
@@ -200,7 +195,7 @@ export default function Reportes() {
                           <tr key={nombre} className="hover:bg-gray-50">
                             <td className="px-4 py-2.5 font-medium text-gray-800">{nombre}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
-                              {Number(vals.cantidad_kg).toFixed(1)}
+                              {Number(vals.quantity_kg).toFixed(1)}
                             </td>
                             <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-green-700">
                               {formatCOP(vals.total_pesos)}
@@ -222,14 +217,14 @@ export default function Reportes() {
                     {datosVentas.map((v) => (
                       <div key={v.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-800">{v.producto?.nombre}</p>
+                          <p className="text-sm font-medium text-gray-800">{v.producto?.name}</p>
                           <p className="text-xs text-gray-400">
-                            {v.cliente?.nombre} · {Number(v.cantidad_kg).toFixed(1)} kg · {v.tipo_venta}
+                            {v.cliente?.name} · {Number(v.quantity_kg).toFixed(1)} kg · {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold text-green-700">{formatCOP(v.total)}</p>
-                          <p className="text-xs text-gray-400">{v.fecha}</p>
+                          <p className="text-xs text-gray-400">{v.date}</p>
                         </div>
                       </div>
                     ))}
@@ -272,14 +267,14 @@ export default function Reportes() {
                     {datosCompras.map((c) => (
                       <div key={c.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-800">{c.producto?.nombre}</p>
+                          <p className="text-sm font-medium text-gray-800">{c.producto?.name}</p>
                           <p className="text-xs text-gray-400">
-                            {c.proveedor?.nombre} · {Number(c.cantidad_kg).toFixed(1)} kg
+                            {c.proveedor?.name} · {Number(c.quantity_kg).toFixed(1)} kg
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold text-blue-700">{formatCOP(c.total)}</p>
-                          <p className="text-xs text-gray-400">{c.fecha}</p>
+                          <p className="text-xs text-gray-400">{c.date}</p>
                         </div>
                       </div>
                     ))}
@@ -301,8 +296,8 @@ export default function Reportes() {
                   </p>
                   <div className="divide-y divide-gray-50">
                     {datosMovimientos.map((m) => {
-                      const tipo = TIPO_MOV[m.tipo] ?? { label: m.tipo, color: 'text-gray-600', bg: 'bg-gray-50' }
-                      const positivo = Number(m.cantidad_kg) >= 0
+                      const tipo = MOVEMENT_TYPE_LABEL[m.type] ?? { label: m.type, color: 'text-gray-600', bg: 'bg-gray-50' }
+                      const positivo = Number(m.quantity_kg) >= 0
                       return (
                         <div key={m.id} className="px-4 py-3 flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -310,12 +305,12 @@ export default function Reportes() {
                               {tipo.label}
                             </span>
                             <div>
-                              <p className="text-sm font-medium text-gray-800">{m.producto?.nombre}</p>
-                              <p className="text-xs text-gray-400">{m.fecha}</p>
+                              <p className="text-sm font-medium text-gray-800">{m.producto?.name}</p>
+                              <p className="text-xs text-gray-400">{m.date}</p>
                             </div>
                           </div>
                           <p className={`text-sm font-bold tabular-nums ${positivo ? 'text-green-600' : 'text-red-500'}`}>
-                            {positivo ? '+' : ''}{Number(m.cantidad_kg).toFixed(1)} kg
+                            {positivo ? '+' : ''}{Number(m.quantity_kg).toFixed(1)} kg
                           </p>
                         </div>
                       )

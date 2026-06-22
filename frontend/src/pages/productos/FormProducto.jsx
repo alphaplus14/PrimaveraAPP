@@ -5,6 +5,7 @@ import {
   getPrecioActual,
   crearPrecio,
 } from '../../api/productos'
+import { CATEGORY_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 
@@ -12,35 +13,34 @@ const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
 const CATEGORIAS = [
-  { value: 'propio', label: 'Propio', desc: 'Se produce en la finca' },
-  { value: 'comprado', label: 'Comprado', desc: 'Se compra a proveedores' },
-  { value: 'pulpa', label: 'Pulpa', desc: 'Producto procesado' },
+  { value: 'own', label: 'Propio', desc: 'Se produce en la finca' },
+  { value: 'purchased', label: 'Comprado', desc: 'Se compra a proveedores' },
+  { value: 'pulp', label: 'Pulpa', desc: 'Producto procesado' },
 ]
 
 export default function FormProducto({ producto, onGuardado, onCerrar }) {
   const esEdicion = !!producto
 
   const [form, setForm] = useState({
-    nombre: producto?.nombre ?? '',
-    categoria: producto?.categoria ?? 'propio',
-    es_fruta_para_pulpa: producto?.es_fruta_para_pulpa ?? false,
-    activo: producto?.activo ?? true,
+    name: producto?.name ?? '',
+    category: producto?.category ?? 'own',
+    is_fruit_for_pulp: producto?.is_fruit_for_pulp ?? false,
+    is_active: producto?.is_active ?? true,
   })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-  // Precios actuales (solo en edición)
-  const [precios, setPrecios] = useState({ detal: null, mayorista: null })
-  const [editandoPrecio, setEditandoPrecio] = useState(null) // 'detal' | 'mayorista' | null
-  const [formPrecio, setFormPrecio] = useState({ valor: '', fecha_vigencia_desde: hoy() })
+  const [precios, setPrecios] = useState({ retail: null, wholesale: null })
+  const [editandoPrecio, setEditandoPrecio] = useState(null)
+  const [formPrecio, setFormPrecio] = useState({ amount: '', effective_from: hoy() })
   const [guardandoPrecio, setGuardandoPrecio] = useState(false)
 
   useEffect(() => {
     if (esEdicion && producto.id) {
       getPrecioActual(producto.id).then(({ data }) => {
         setPrecios({
-          detal: data.data?.detal ?? null,
-          mayorista: data.data?.mayorista ?? null,
+          retail: data.data?.retail ?? null,
+          wholesale: data.data?.wholesale ?? null,
         })
       }).catch(() => {})
     }
@@ -48,7 +48,7 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!form.nombre.trim()) { setError('El nombre es obligatorio.'); return }
+    if (!form.name.trim()) { setError('El nombre es obligatorio.'); return }
 
     setGuardando(true)
     try {
@@ -66,20 +66,20 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
   }
 
   const handleGuardarPrecio = async () => {
-    if (!formPrecio.valor || Number(formPrecio.valor) <= 0) {
+    if (!formPrecio.amount || Number(formPrecio.amount) <= 0) {
       setError('El precio debe ser mayor a cero.')
       return
     }
     setGuardandoPrecio(true)
     try {
       const { data } = await crearPrecio(producto.id, {
-        tipo: editandoPrecio,
-        valor: formPrecio.valor,
-        fecha_vigencia_desde: formPrecio.fecha_vigencia_desde,
+        type: editandoPrecio,
+        amount: formPrecio.amount,
+        effective_from: formPrecio.effective_from,
       })
       setPrecios((prev) => ({ ...prev, [editandoPrecio]: data.data }))
       setEditandoPrecio(null)
-      setFormPrecio({ valor: '', fecha_vigencia_desde: hoy() })
+      setFormPrecio({ amount: '', effective_from: hoy() })
     } catch (err) {
       setError(err.response?.data?.message ?? 'Error al guardar el precio.')
     } finally {
@@ -87,31 +87,29 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
     }
   }
 
-  const abrirEditarPrecio = (tipo) => {
-    setEditandoPrecio(tipo)
+  const abrirEditarPrecio = (type) => {
+    setEditandoPrecio(type)
     setFormPrecio({
-      valor: precios[tipo] ? String(Number(precios[tipo].valor)) : '',
-      fecha_vigencia_desde: hoy(),
+      amount: precios[type] ? String(Number(precios[type].amount)) : '',
+      effective_from: hoy(),
     })
     setError(null)
   }
 
   return (
     <div className="space-y-5">
-      {/* Nombre */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Nombre *</label>
         <input
           type="text"
           autoFocus
           placeholder="Ej: Plátano, Maracuyá, Pulpa de Lulo..."
-          value={form.nombre}
-          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           className={inputClass}
         />
       </div>
 
-      {/* Categoría */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-2">Categoría *</label>
         <div className="grid grid-cols-3 gap-2">
@@ -119,9 +117,9 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
             <button
               key={cat.value}
               type="button"
-              onClick={() => setForm((f) => ({ ...f, categoria: cat.value }))}
+              onClick={() => setForm((f) => ({ ...f, category: cat.value }))}
               className={`flex flex-col items-center p-3 rounded-xl border-2 text-center transition-all ${
-                form.categoria === cat.value
+                form.category === cat.value
                   ? 'border-[#f56523] bg-orange-50 text-[#f56523]'
                   : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
               }`}
@@ -133,18 +131,17 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         </div>
       </div>
 
-      {/* Es fruta para pulpa (solo propio/comprado) */}
-      {form.categoria !== 'pulpa' && (
+      {form.category !== 'pulp' && (
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, es_fruta_para_pulpa: !f.es_fruta_para_pulpa }))}
+              onClick={() => setForm((f) => ({ ...f, is_fruit_for_pulp: !f.is_fruit_for_pulp }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.es_fruta_para_pulpa ? 'bg-[#f56523]' : 'bg-gray-300'
+                form.is_fruit_for_pulp ? 'bg-[#f56523]' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.es_fruta_para_pulpa ? 'translate-x-5' : 'translate-x-1'
+                form.is_fruit_for_pulp ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -155,18 +152,17 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         </div>
       )}
 
-      {/* Activo (solo edición) */}
       {esEdicion && (
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, activo: !f.activo }))}
+              onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.activo ? 'bg-green-500' : 'bg-gray-300'
+                form.is_active ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.activo ? 'translate-x-5' : 'translate-x-1'
+                form.is_active ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -177,19 +173,18 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         </div>
       )}
 
-      {/* Gestión de precios (solo edición) */}
       {esEdicion && (
         <div>
           <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
             Precios de venta
           </label>
           <div className="space-y-2">
-            {['detal', 'mayorista'].map((tipo) => (
-              <div key={tipo}>
-                {editandoPrecio === tipo ? (
+            {['retail', 'wholesale'].map((type) => (
+              <div key={type}>
+                {editandoPrecio === type ? (
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
-                    <p className="text-xs font-semibold text-orange-700 capitalize">
-                      Nuevo precio {tipo}
+                    <p className="text-xs font-semibold text-orange-700">
+                      Nuevo precio {SALE_TYPE_LABEL[type] ?? type}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -200,8 +195,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                           min="1"
                           step="100"
                           placeholder="0"
-                          value={formPrecio.valor}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, valor: e.target.value }))}
+                          value={formPrecio.amount}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, amount: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -209,8 +204,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                         <label className="text-xs text-gray-400 mb-0.5 block">Vigente desde</label>
                         <input
                           type="date"
-                          value={formPrecio.fecha_vigencia_desde}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, fecha_vigencia_desde: e.target.value }))}
+                          value={formPrecio.effective_from}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, effective_from: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -234,20 +229,20 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                 ) : (
                   <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                     <div>
-                      <p className="text-xs text-gray-400 capitalize">{tipo}</p>
+                      <p className="text-xs text-gray-400">{SALE_TYPE_LABEL[type] ?? type}</p>
                       <p className="text-sm font-semibold text-gray-800">
-                        {precios[tipo]
-                          ? formatCOP(precios[tipo].valor) + ' / kg'
+                        {precios[type]
+                          ? formatCOP(precios[type].amount) + ' / kg'
                           : <span className="text-gray-400 font-normal">Sin precio</span>
                         }
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => abrirEditarPrecio(tipo)}
+                      onClick={() => abrirEditarPrecio(type)}
                       className="text-xs text-[#f56523] font-medium hover:underline"
                     >
-                      {precios[tipo] ? 'Actualizar' : 'Definir'}
+                      {precios[type] ? 'Actualizar' : 'Definir'}
                     </button>
                   </div>
                 )}

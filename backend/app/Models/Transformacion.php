@@ -7,28 +7,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transformacion extends Model
 {
+    protected $table = 'transformations';
+
     protected $fillable = [
-        'fecha',
-        'producto_origen_id',
-        'cantidad_fruta_kg',
-        'producto_pulpa_id',
-        'cantidad_pulpa_kg',
-        'observaciones',
+        'date',
+        'source_product_id',
+        'fruit_quantity_kg',
+        'pulp_product_id',
+        'pulp_quantity_kg',
+        'notes',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
-        'cantidad_fruta_kg' => 'decimal:3',
-        'cantidad_pulpa_kg' => 'decimal:3',
+        'date' => 'date',
+        'fruit_quantity_kg' => 'decimal:3',
+        'pulp_quantity_kg' => 'decimal:3',
     ];
 
     public function productoOrigen(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'producto_origen_id');
+        return $this->belongsTo(Producto::class, 'source_product_id');
     }
 
     public function productoPulpa(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'producto_pulpa_id');
+        return $this->belongsTo(Producto::class, 'pulp_product_id');
     }
 }
