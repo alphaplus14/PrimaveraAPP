@@ -11,19 +11,19 @@ class ProveedorController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(['data' => Proveedor::orderBy('nombre')->get()]);
+        return response()->json(['data' => Proveedor::orderBy('name')->get()]);
     }
 
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'tipo' => 'required|in:vecino,galeria,otro',
-            'telefono' => 'nullable|string|max:20',
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:neighbor,market,other',
+            'phone' => 'nullable|string|max:20',
         ], [
-            'nombre.required' => 'El nombre es obligatorio.',
-            'tipo.required' => 'El tipo es obligatorio.',
-            'tipo.in' => 'El tipo debe ser: vecino, galeria u otro.',
+            'name.required' => 'El nombre es obligatorio.',
+            'type.required' => 'El tipo es obligatorio.',
+            'type.in' => 'El tipo debe ser: neighbor, market u other.',
         ]);
 
         return response()->json(['data' => Proveedor::create($data)], 201);
@@ -37,10 +37,10 @@ class ProveedorController extends Controller
     public function update(Request $request, Proveedor $proveedor): JsonResponse
     {
         $data = $request->validate([
-            'nombre' => 'sometimes|string|max:255',
-            'tipo' => 'sometimes|in:vecino,galeria,otro',
-            'telefono' => 'nullable|string|max:20',
-            'activo' => 'sometimes|boolean',
+            'name' => 'sometimes|string|max:255',
+            'type' => 'sometimes|in:neighbor,market,other',
+            'phone' => 'nullable|string|max:20',
+            'is_active' => 'sometimes|boolean',
         ]);
 
         $proveedor->update($data);
@@ -50,7 +50,7 @@ class ProveedorController extends Controller
 
     public function destroy(Proveedor $proveedor): JsonResponse
     {
-        $proveedor->update(['activo' => false]);
+        $proveedor->update(['is_active' => false]);
 
         return response()->json(['message' => 'Proveedor desactivado correctamente.']);
     }

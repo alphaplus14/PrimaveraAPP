@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('insumos', function (Blueprint $table) {
+        Schema::create('supplies', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo', ['quimico', 'abono', 'otro']);
-            $table->string('unidad_medida');
-            $table->decimal('stock_actual', 10, 3)->default(0);
-            $table->boolean('activo')->default(true);
+            $table->string('name');
+            $table->enum('type', ['chemical', 'fertilizer', 'other']);
+            $table->string('unit_of_measure');
+            $table->decimal('current_stock', 10, 3)->default(0);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('insumos');
+        Schema::dropIfExists('supplies');
     }
 };

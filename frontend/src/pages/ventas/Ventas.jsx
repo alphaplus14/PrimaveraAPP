@@ -3,6 +3,7 @@ import { getVentas } from '../../api/ventas'
 import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import FormVenta from './FormVenta'
+import { SALE_TYPE_LABEL } from '../../constants/enums'
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
@@ -54,16 +55,16 @@ export default function Ventas() {
             {lista.map((v) => (
               <div key={v.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <p className="font-semibold text-gray-800">{v.producto?.nombre}</p>
+                  <p className="font-semibold text-gray-800">{v.producto?.name}</p>
                   <span className="font-bold text-green-600 text-sm">{formatCOP(v.total)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-400">
-                  <span>{v.cliente?.nombre} · {Number(v.cantidad_kg).toFixed(1)} kg</span>
+                  <span>{v.cliente?.name} · {Number(v.quantity_kg).toFixed(1)} kg</span>
                   <div className="flex items-center gap-1">
                     <span className={`px-1.5 py-0.5 rounded-full font-medium ${
-                      v.tipo_venta === 'mayorista' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
-                    }`}>{v.tipo_venta}</span>
-                    <span>{v.fecha}</span>
+                      v.sale_type === 'wholesale' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                    }`}>{SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}</span>
+                    <span>{v.date}</span>
                   </div>
                 </div>
               </div>
@@ -86,15 +87,15 @@ export default function Ventas() {
               <tbody className="divide-y divide-gray-100">
                 {lista.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">{v.fecha}</td>
-                    <td className="px-4 py-3 font-medium">{v.producto?.nombre}</td>
-                    <td className="px-4 py-3 text-gray-600">{v.cliente?.nombre}</td>
+                    <td className="px-4 py-3 text-gray-500">{v.date}</td>
+                    <td className="px-4 py-3 font-medium">{v.producto?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{v.cliente?.name}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        v.tipo_venta === 'mayorista' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                      }`}>{v.tipo_venta}</span>
+                        v.sale_type === 'wholesale' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                      }`}>{SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}</span>
                     </td>
-                    <td className="px-4 py-3 text-right">{Number(v.cantidad_kg).toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right">{Number(v.quantity_kg).toFixed(1)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCOP(v.total)}</td>
                   </tr>
                 ))}

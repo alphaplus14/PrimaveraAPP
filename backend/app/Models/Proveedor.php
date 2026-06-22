@@ -7,19 +7,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Proveedor extends Model
 {
+    protected $table = 'suppliers';
+
     protected $fillable = [
-        'nombre',
-        'tipo',
-        'telefono',
-        'activo',
+        'name',
+        'type',
+        'phone',
+        'is_active',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function compras(): HasMany
     {
-        return $this->hasMany(Compra::class);
+        return $this->hasMany(Compra::class, 'supplier_id');
     }
 }

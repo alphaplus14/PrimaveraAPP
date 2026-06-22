@@ -8,20 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('transformaciones', function (Blueprint $table) {
+        Schema::create('transformations', function (Blueprint $table) {
             $table->id();
-            $table->date('fecha');
-            $table->foreignId('producto_origen_id')->constrained('productos')->restrictOnDelete();
-            $table->decimal('cantidad_fruta_kg', 10, 3);
-            $table->foreignId('producto_pulpa_id')->constrained('productos')->restrictOnDelete();
-            $table->decimal('cantidad_pulpa_kg', 10, 3);
-            $table->text('observaciones')->nullable();
+            $table->date('date');
+            $table->foreignId('source_product_id')->constrained('products')->restrictOnDelete();
+            $table->decimal('fruit_quantity_kg', 10, 3);
+            $table->foreignId('pulp_product_id')->constrained('products')->restrictOnDelete();
+            $table->decimal('pulp_quantity_kg', 10, 3);
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('transformaciones');
+        Schema::dropIfExists('transformations');
     }
 };

@@ -8,22 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('ventas', function (Blueprint $table) {
+        Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->date('fecha');
-            $table->foreignId('cliente_id')->constrained('clientes')->restrictOnDelete();
-            $table->foreignId('producto_id')->constrained()->restrictOnDelete();
-            $table->decimal('cantidad_kg', 10, 3);
-            $table->enum('tipo_venta', ['detal', 'mayorista']);
-            $table->decimal('precio_unitario', 10, 2);
+            $table->date('date');
+            $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
+            $table->foreignId('product_id')->constrained()->restrictOnDelete();
+            $table->decimal('quantity_kg', 10, 3);
+            $table->enum('sale_type', ['retail', 'wholesale']);
+            $table->decimal('unit_price', 10, 2);
             $table->decimal('total', 10, 2);
-            $table->boolean('forzado')->default(false)->comment('true si se vendió con stock insuficiente');
+            $table->boolean('forced')->default(false)->comment('true if sold with insufficient stock');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('ventas');
+        Schema::dropIfExists('sales');
     }
 };

@@ -9,7 +9,7 @@ const TIPOS_LABOR = [
   'Poda', 'Riego', 'Limpieza', 'Control de plagas', 'Otro',
 ]
 
-const lineaInsumoVacia = () => ({ id: Math.random(), insumo_id: '', cantidad_usada: '' })
+const lineaInsumoVacia = () => ({ id: Math.random(), supply_id: '', quantity_used: '' })
 
 export default function FormLabor({ onGuardado, onCerrar }) {
   const [insumos, setInsumos] = useState([])
@@ -19,15 +19,15 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
   // Estado para crear insumo inline
   const [pendingInsumo, setPendingInsumo] = useState(null) // { nombre, lineaId }
-  const [formInsumo, setFormInsumo] = useState({ tipo: 'otro', unidad_medida: '' })
+  const [formInsumo, setFormInsumo] = useState({ type: 'other', unit_of_measure: '' })
 
   const [form, setForm] = useState({
-    fecha: hoy(),
-    tipo_labor: '',
+    date: hoy(),
+    task_type: '',
     tipoPersonalizado: false,
-    cultivo: '',
-    responsable: '',
-    descripcion: '',
+    crop: '',
+    assigned_to: '',
+    description: '',
   })
   const [lineasInsumo, setLineasInsumo] = useState([lineaInsumoVacia()])
 
@@ -45,23 +45,23 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
   const handleIniciarCrearInsumo = (nombre, lineaId) => {
     setPendingInsumo({ nombre, lineaId })
-    setFormInsumo({ tipo: 'otro', unidad_medida: '' })
+    setFormInsumo({ type: 'other', unit_of_measure: '' })
   }
 
   const handleConfirmarInsumo = async () => {
-    if (!formInsumo.unidad_medida.trim()) {
+    if (!formInsumo.unit_of_measure.trim()) {
       setError('Indica la unidad de medida del insumo (Ej: litros, kg, gramos).')
       return
     }
     try {
       const { data } = await crearInsumo({
-        nombre: pendingInsumo.nombre,
-        tipo: formInsumo.tipo,
-        unidad_medida: formInsumo.unidad_medida,
+        name: pendingInsumo.nombre,
+        type: formInsumo.type,
+        unit_of_measure: formInsumo.unit_of_measure,
       })
       const nuevo = data.data
       setInsumos((prev) => [...prev, nuevo])
-      actualizarLinea(pendingInsumo.lineaId, 'insumo_id', String(nuevo.id))
+      actualizarLinea(pendingInsumo.lineaId, 'supply_id', String(nuevo.id))
       setPendingInsumo(null)
       setError(null)
     } catch (err) {
@@ -71,12 +71,11 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!form.tipo_labor.trim()) { setError('El tipo de labor es obligatorio.'); return }
+    if (!form.task_type.trim()) { setError('El tipo de labor es obligatorio.'); return }
 
-    // Si se activó insumos, validar las líneas
     if (mostrarInsumos) {
-      const lineasValidas = lineasInsumo.filter((l) => l.insumo_id && l.cantidad_usada)
-      if (lineasInsumo.some((l) => (l.insumo_id && !l.cantidad_usada) || (!l.insumo_id && l.cantidad_usada))) {
+      const lineasValidas = lineasInsumo.filter((l) => l.supply_id && l.quantity_used)
+      if (lineasInsumo.some((l) => (l.supply_id && !l.quantity_used) || (!l.supply_id && l.quantity_used))) {
         setError('Completa todos los campos de cada insumo o elimina las líneas vacías.')
         return
       }
@@ -85,19 +84,19 @@ export default function FormLabor({ onGuardado, onCerrar }) {
     setGuardando(true)
     try {
       const payload = {
-        fecha: form.fecha,
-        tipo_labor: form.tipo_labor,
-        cultivo: form.cultivo || undefined,
-        responsable: form.responsable || undefined,
-        descripcion: form.descripcion || undefined,
+        date: form.date,
+        task_type: form.task_type,
+        crop: form.crop || undefined,
+        assigned_to: form.assigned_to || undefined,
+        description: form.description || undefined,
       }
 
       if (mostrarInsumos) {
-        const lineasValidas = lineasInsumo.filter((l) => l.insumo_id && l.cantidad_usada)
+        const lineasValidas = lineasInsumo.filter((l) => l.supply_id && l.quantity_used)
         if (lineasValidas.length > 0) {
-          payload.insumos = lineasValidas.map((l) => ({
-            insumo_id: l.insumo_id,
-            cantidad_usada: l.cantidad_usada,
+          payload.supplies = lineasValidas.map((l) => ({
+            supply_id: l.supply_id,
+            quantity_used: l.quantity_used,
           }))
         }
       }
@@ -111,7 +110,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
     }
   }
 
-  const tipoSeleccionado = TIPOS_LABOR.includes(form.tipo_labor) || form.tipo_labor === ''
+  const tipoSeleccionado = TIPOS_LABOR.includes(form.task_type) || form.task_type === ''
 
   return (
     <div className="space-y-4">
@@ -121,8 +120,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
           <input
             type="date"
-            value={form.fecha}
-            onChange={(e) => set('fecha', e.target.value)}
+            value={form.date}
+            onChange={(e) => set('date', e.target.value)}
             className={inputClass}
           />
         </div>
@@ -131,8 +130,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
           <input
             type="text"
             placeholder="Ej: Plátano, Lote 3..."
-            value={form.cultivo}
-            onChange={(e) => set('cultivo', e.target.value)}
+            value={form.crop}
+            onChange={(e) => set('crop', e.target.value)}
             className={inputClass}
           />
         </div>
@@ -147,9 +146,9 @@ export default function FormLabor({ onGuardado, onCerrar }) {
             <button
               key={t}
               type="button"
-              onClick={() => set('tipo_labor', t)}
+              onClick={() => set('task_type', t)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                form.tipo_labor === t
+                form.task_type === t
                   ? 'bg-[#1a365d] text-white'
                   : 'bg-white border border-gray-200 text-gray-500 hover:border-[#1a365d]'
               }`}
@@ -159,13 +158,13 @@ export default function FormLabor({ onGuardado, onCerrar }) {
           ))}
         </div>
         {/* Campo libre si eligió "Otro" o quiere personalizar */}
-        {(form.tipo_labor === 'Otro' || !tipoSeleccionado) && (
+        {(form.task_type === 'Otro' || !tipoSeleccionado) && (
           <input
             type="text"
-            autoFocus={form.tipo_labor === 'Otro'}
+            autoFocus={form.task_type === 'Otro'}
             placeholder="Describir labor..."
-            value={form.tipo_labor === 'Otro' ? '' : form.tipo_labor}
-            onChange={(e) => set('tipo_labor', e.target.value)}
+            value={form.task_type === 'Otro' ? '' : form.task_type}
+            onChange={(e) => set('task_type', e.target.value)}
             className={inputClass}
           />
         )}
@@ -177,8 +176,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         <input
           type="text"
           placeholder="Nombre de quien realizó la labor"
-          value={form.responsable}
-          onChange={(e) => set('responsable', e.target.value)}
+          value={form.assigned_to}
+          onChange={(e) => set('assigned_to', e.target.value)}
           className={inputClass}
         />
       </div>
@@ -188,8 +187,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         <label className="block text-xs font-medium text-gray-500 mb-1">Descripción (opcional)</label>
         <textarea
           placeholder="Detalles adicionales..."
-          value={form.descripcion}
-          onChange={(e) => set('descripcion', e.target.value)}
+          value={form.description}
+          onChange={(e) => set('description', e.target.value)}
           rows={2}
           className={`${inputClass} resize-none`}
         />
@@ -244,10 +243,10 @@ export default function FormLabor({ onGuardado, onCerrar }) {
               <SelectBuscable
                 opciones={insumos.map((i) => ({
                   value: i.id,
-                  label: `${i.nombre} (${i.unidad_medida})`,
+                  label: `${i.name} (${i.unit_of_measure})`,
                 }))}
-                value={linea.insumo_id}
-                onChange={(v) => actualizarLinea(linea.id, 'insumo_id', v)}
+                value={linea.supply_id}
+                onChange={(v) => actualizarLinea(linea.id, 'supply_id', v)}
                 placeholder="Buscar insumo..."
                 onCrear={(nombre) => handleIniciarCrearInsumo(nombre, linea.id)}
               />
@@ -262,13 +261,13 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                     <div>
                       <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
                       <div className="flex rounded-lg overflow-hidden border border-gray-300">
-                        {[['quimico', 'Químico'], ['abono', 'Abono'], ['otro', 'Otro']].map(([v, l]) => (
+                        {[['chemical', 'Químico'], ['fertilizer', 'Abono'], ['other', 'Otro']].map(([v, l]) => (
                           <button
                             key={v}
                             type="button"
-                            onClick={() => setFormInsumo((f) => ({ ...f, tipo: v }))}
+                            onClick={() => setFormInsumo((f) => ({ ...f, type: v }))}
                             className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                              formInsumo.tipo === v
+                              formInsumo.type === v
                                 ? 'bg-[#1a365d] text-white'
                                 : 'bg-white text-gray-500 hover:bg-gray-50'
                             }`}
@@ -284,8 +283,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                         type="text"
                         autoFocus
                         placeholder="kg, litros, g..."
-                        value={formInsumo.unidad_medida}
-                        onChange={(e) => setFormInsumo((f) => ({ ...f, unidad_medida: e.target.value }))}
+                        value={formInsumo.unit_of_measure}
+                        onChange={(e) => setFormInsumo((f) => ({ ...f, unit_of_measure: e.target.value }))}
                         className={inputClass}
                       />
                     </div>
@@ -311,9 +310,9 @@ export default function FormLabor({ onGuardado, onCerrar }) {
               <div>
                 <label className="text-xs text-gray-400 mb-0.5 block">
                   Cantidad *
-                  {linea.insumo_id && (() => {
-                    const ins = insumos.find((i) => String(i.id) === String(linea.insumo_id))
-                    return ins ? <span className="ml-1 text-gray-300">({ins.unidad_medida})</span> : null
+                  {linea.supply_id && (() => {
+                    const ins = insumos.find((i) => String(i.id) === String(linea.supply_id))
+                    return ins ? <span className="ml-1 text-gray-300">({ins.unit_of_measure})</span> : null
                   })()}
                 </label>
                 <input
@@ -321,8 +320,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                   min="0.001"
                   step="0.1"
                   placeholder="0"
-                  value={linea.cantidad_usada}
-                  onChange={(e) => actualizarLinea(linea.id, 'cantidad_usada', e.target.value)}
+                  value={linea.quantity_used}
+                  onChange={(e) => actualizarLinea(linea.id, 'quantity_used', e.target.value)}
                   className={inputClass}
                 />
               </div>

@@ -8,17 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('labor_insumo', function (Blueprint $table) {
+        Schema::create('farm_task_supply', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('labor_id')->constrained('labores')->cascadeOnDelete();
-            $table->foreignId('insumo_id')->constrained('insumos')->restrictOnDelete();
-            $table->decimal('cantidad_usada', 10, 3);
+            $table->foreignId('farm_task_id')->constrained('farm_tasks')->cascadeOnDelete();
+            $table->foreignId('supply_id')->constrained('supplies')->restrictOnDelete();
+            $table->decimal('quantity_used', 10, 3);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('labor_insumo');
+        Schema::dropIfExists('farm_task_supply');
     }
 };

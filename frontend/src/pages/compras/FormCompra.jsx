@@ -7,9 +7,9 @@ const hoy = () => new Date().toISOString().split('T')[0]
 
 const lineaVacia = () => ({
   id: Math.random(),
-  producto_id: '',
-  cantidad_kg: '',
-  precio_unitario: '',
+  product_id: '',
+  quantity_kg: '',
+  unit_price: '',
 })
 
 const formatCOP = (v) =>
@@ -23,19 +23,19 @@ export default function FormCompra({ onGuardado, onCerrar }) {
 
   // Estado para crear proveedor con tipo
   const [pendingProveedor, setPendingProveedor] = useState(null) // { nombre } → espera tipo
-  const [tipoProveedor, setTipoProveedor] = useState('vecino')
+  const [tipoProveedor, setTipoProveedor] = useState('neighbor')
 
   const [cabecera, setCabecera] = useState({
-    fecha: hoy(),
-    proveedor_id: '',
-    observaciones: '',
+    date: hoy(),
+    supplier_id: '',
+    notes: '',
   })
   const [lineas, setLineas] = useState([lineaVacia()])
 
   useEffect(() => {
     Promise.all([getProductos(), getProveedores()]).then(([p, prov]) => {
-      setProductos(p.data.data.filter((x) => x.activo))
-      setProveedores(prov.data.data.filter((x) => x.activo))
+      setProductos(p.data.data.filter((x) => x.is_active))
+      setProveedores(prov.data.data.filter((x) => x.is_active))
     })
   }, [])
 
@@ -49,23 +49,23 @@ export default function FormCompra({ onGuardado, onCerrar }) {
   const eliminarLinea = (id) => setLineas((prev) => prev.filter((l) => l.id !== id))
 
   const totalGeneral = lineas.reduce((sum, l) => {
-    return sum + (l.cantidad_kg && l.precio_unitario
-      ? Number(l.cantidad_kg) * Number(l.precio_unitario)
+    return sum + (l.quantity_kg && l.unit_price
+      ? Number(l.quantity_kg) * Number(l.unit_price)
       : 0)
   }, 0)
 
   // Se llama cuando SelectBuscable dispara "Crear X"
   const handleIniciarCrearProveedor = (nombre) => {
     setPendingProveedor({ nombre })
-    setTipoProveedor('vecino')
+    setTipoProveedor('neighbor')
   }
 
   const handleConfirmarProveedor = async () => {
     if (!pendingProveedor?.nombre.trim()) return
     try {
-      const { data } = await crearProveedor({ nombre: pendingProveedor.nombre, tipo: tipoProveedor })
+      const { data } = await crearProveedor({ name: pendingProveedor.nombre, type: tipoProveedor })
       setProveedores((prev) => [...prev, data.data])
-      setCabecera((c) => ({ ...c, proveedor_id: String(data.data.id) }))
+      setCabecera((c) => ({ ...c, supplier_id: String(data.data.id) }))
       setPendingProveedor(null)
     } catch {
       setError('No se pudo crear el proveedor.')
@@ -75,8 +75,8 @@ export default function FormCompra({ onGuardado, onCerrar }) {
   const handleSubmit = async () => {
     setError(null)
 
-    if (!cabecera.proveedor_id) { setError('Selecciona un proveedor.'); return }
-    if (lineas.some((l) => !l.producto_id || !l.cantidad_kg || !l.precio_unitario)) {
+    if (!cabecera.supplier_id) { setError('Selecciona un proveedor.'); return }
+    if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
       setError('Completa todos los campos de cada línea.')
       return
     }
@@ -86,12 +86,12 @@ export default function FormCompra({ onGuardado, onCerrar }) {
       await Promise.all(
         lineas.map((l) =>
           crearCompra({
-            fecha: cabecera.fecha,
-            proveedor_id: cabecera.proveedor_id,
-            observaciones: cabecera.observaciones,
-            producto_id: l.producto_id,
-            cantidad_kg: l.cantidad_kg,
-            precio_unitario: l.precio_unitario,
+            date: cabecera.date,
+            supplier_id: cabecera.supplier_id,
+            notes: cabecera.notes,
+            product_id: l.product_id,
+            quantity_kg: l.quantity_kg,
+            unit_price: l.unit_price,
           })
         )
       )
@@ -111,8 +111,8 @@ export default function FormCompra({ onGuardado, onCerrar }) {
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
           <input
             type="date"
-            value={cabecera.fecha}
-            onChange={(e) => setCabecera((c) => ({ ...c, fecha: e.target.value }))}
+            value={cabecera.date}
+            onChange={(e) => setCabecera((c) => ({ ...c, date: e.target.value }))}
             className={inputClass}
           />
         </div>
@@ -120,9 +120,9 @@ export default function FormCompra({ onGuardado, onCerrar }) {
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Proveedor *</label>
           <SelectBuscable
-            opciones={proveedores.map((p) => ({ value: p.id, label: `${p.nombre} (${p.tipo})` }))}
-            value={cabecera.proveedor_id}
-            onChange={(v) => setCabecera((c) => ({ ...c, proveedor_id: v }))}
+            opciones={proveedores.map((p) => ({ value: p.id, label: `${p.name} (${p.type})` }))}
+            value={cabecera.supplier_id}
+            onChange={(v) => setCabecera((c) => ({ ...c, supplier_id: v }))}
             placeholder="Buscar proveedor..."
             onCrear={handleIniciarCrearProveedor}
           />
@@ -133,7 +133,7 @@ export default function FormCompra({ onGuardado, onCerrar }) {
                 Tipo de proveedor: <span className="font-bold">"{pendingProveedor.nombre}"</span>
               </p>
               <div className="flex rounded-lg overflow-hidden border border-gray-300">
-                {['vecino', 'galeria', 'otro'].map((t) => (
+                {['neighbor', 'market', 'other'].map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -144,7 +144,7 @@ export default function FormCompra({ onGuardado, onCerrar }) {
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
-                    {t === 'galeria' ? 'Galería' : t.charAt(0).toUpperCase() + t.slice(1)}
+                    {t === 'market' ? 'Galería' : t === 'neighbor' ? 'Vecino' : 'Otro'}
                   </button>
                 ))}
               </div>
@@ -192,9 +192,9 @@ export default function FormCompra({ onGuardado, onCerrar }) {
             </div>
 
             <SelectBuscable
-              opciones={productos.map((p) => ({ value: p.id, label: p.nombre }))}
-              value={linea.producto_id}
-              onChange={(v) => actualizarLinea(linea.id, 'producto_id', v)}
+              opciones={productos.map((p) => ({ value: p.id, label: p.name }))}
+              value={linea.product_id}
+              onChange={(v) => actualizarLinea(linea.id, 'product_id', v)}
               placeholder="Buscar producto..."
             />
 
@@ -206,8 +206,8 @@ export default function FormCompra({ onGuardado, onCerrar }) {
                   min="0.001"
                   step="0.1"
                   placeholder="0.0"
-                  value={linea.cantidad_kg}
-                  onChange={(e) => actualizarLinea(linea.id, 'cantidad_kg', e.target.value)}
+                  value={linea.quantity_kg}
+                  onChange={(e) => actualizarLinea(linea.id, 'quantity_kg', e.target.value)}
                   className={inputClass}
                 />
               </div>
@@ -218,16 +218,16 @@ export default function FormCompra({ onGuardado, onCerrar }) {
                   min="0"
                   step="100"
                   placeholder="$ 0"
-                  value={linea.precio_unitario}
-                  onChange={(e) => actualizarLinea(linea.id, 'precio_unitario', e.target.value)}
+                  value={linea.unit_price}
+                  onChange={(e) => actualizarLinea(linea.id, 'unit_price', e.target.value)}
                   className={inputClass}
                 />
               </div>
             </div>
 
-            {linea.cantidad_kg && linea.precio_unitario && (
+            {linea.quantity_kg && linea.unit_price && (
               <div className="text-right text-xs font-semibold text-blue-700">
-                = {formatCOP(Number(linea.cantidad_kg) * Number(linea.precio_unitario))}
+                = {formatCOP(Number(linea.quantity_kg) * Number(linea.unit_price))}
               </div>
             )}
           </div>
@@ -248,8 +248,8 @@ export default function FormCompra({ onGuardado, onCerrar }) {
         <input
           type="text"
           placeholder="Ej: Producto llegó en buen estado..."
-          value={cabecera.observaciones}
-          onChange={(e) => setCabecera((c) => ({ ...c, observaciones: e.target.value }))}
+          value={cabecera.notes}
+          onChange={(e) => setCabecera((c) => ({ ...c, notes: e.target.value }))}
           className={inputClass}
         />
       </div>

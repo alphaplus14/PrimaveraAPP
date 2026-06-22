@@ -8,27 +8,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Labor extends Model
 {
+    protected $table = 'farm_tasks';
+
     protected $fillable = [
-        'fecha',
-        'tipo_labor',
-        'cultivo',
-        'responsable',
-        'descripcion',
+        'date',
+        'task_type',
+        'crop',
+        'assigned_to',
+        'description',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
+        'date' => 'date',
     ];
 
     public function laborInsumos(): HasMany
     {
-        return $this->hasMany(LaborInsumo::class);
+        return $this->hasMany(LaborInsumo::class, 'farm_task_id');
     }
 
     public function insumos(): BelongsToMany
     {
-        return $this->belongsToMany(Insumo::class, 'labor_insumo')
-            ->withPivot('cantidad_usada')
+        return $this->belongsToMany(Insumo::class, 'farm_task_supply', 'farm_task_id', 'supply_id')
+            ->withPivot('quantity_used')
             ->withTimestamps();
     }
 }

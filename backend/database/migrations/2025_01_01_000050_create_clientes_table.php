@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('clientes', function (Blueprint $table) {
+        Schema::create('customers', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->enum('tipo', ['tienda', 'restaurante', 'galeria', 'particular']);
-            $table->string('telefono')->nullable();
-            $table->boolean('activo')->default(true);
+            $table->string('name');
+            $table->enum('type', ['store', 'restaurant', 'market', 'individual']);
+            $table->string('phone')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('clientes');
+        Schema::dropIfExists('customers');
     }
 };

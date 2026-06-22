@@ -4,19 +4,9 @@ import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import FormProducto from './FormProducto'
 
-const CATEGORIA_BADGE = {
-  propio: 'bg-green-100 text-green-700',
-  comprado: 'bg-blue-100 text-blue-700',
-  pulpa: 'bg-orange-100 text-orange-700',
-}
+import { CATEGORY_LABEL, CATEGORY_BADGE } from '../../constants/enums'
 
-const CATEGORIA_LABEL = {
-  propio: 'Propio',
-  comprado: 'Comprado',
-  pulpa: 'Pulpa',
-}
-
-const FILTROS = ['todos', 'propio', 'comprado', 'pulpa']
+const FILTROS = ['todos', 'own', 'purchased', 'pulp']
 
 export default function Productos() {
   const [filtro, setFiltro] = useState('todos')
@@ -28,8 +18,8 @@ export default function Productos() {
   const todos = data?.data ?? []
 
   const lista = todos.filter((p) => {
-    const coincideCategoria = filtro === 'todos' || p.categoria === filtro
-    const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    const coincideCategoria = filtro === 'todos' || p.category === filtro
+    const coincideBusqueda = p.name.toLowerCase().includes(busqueda.toLowerCase())
     return coincideCategoria && coincideBusqueda
   })
 
@@ -88,7 +78,7 @@ export default function Productos() {
                 : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
             }`}
           >
-            {f === 'todos' ? 'Todos' : CATEGORIA_LABEL[f]}
+            {f === 'todos' ? 'Todos' : CATEGORY_LABEL[f]}
           </button>
         ))}
         {busqueda && (
@@ -135,16 +125,16 @@ export default function Productos() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${CATEGORIA_BADGE[p.categoria]}`}>
-                      {CATEGORIA_LABEL[p.categoria]}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${CATEGORY_BADGE[p.category]}`}>
+                      {CATEGORY_LABEL[p.category]}
                     </span>
-                    <span className="font-medium text-gray-800 truncate">{p.nombre}</span>
-                    {!p.activo && (
+                    <span className="font-medium text-gray-800 truncate">{p.name}</span>
+                    {!p.is_active && (
                       <span className="text-xs text-gray-400 shrink-0">(inactivo)</span>
                     )}
                   </div>
                   <span className="text-xs text-gray-400 ml-2 shrink-0">
-                    {p.inventario ? `${Number(p.inventario.cantidad_kg).toFixed(1)} kg` : '—'}
+                    {p.inventario ? `${Number(p.inventario.quantity_kg).toFixed(1)} kg` : '—'}
                   </span>
                 </div>
               </button>
@@ -167,23 +157,23 @@ export default function Productos() {
               <tbody className="divide-y divide-gray-100">
                 {lista.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{p.nombre}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORIA_BADGE[p.categoria]}`}>
-                        {CATEGORIA_LABEL[p.categoria]}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_BADGE[p.category]}`}>
+                        {CATEGORY_LABEL[p.category]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-gray-400">
-                      {p.es_fruta_para_pulpa ? '✓' : '—'}
+                      {p.is_fruit_for_pulp ? '✓' : '—'}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                      {p.inventario ? Number(p.inventario.cantidad_kg).toLocaleString('es-CO', { maximumFractionDigits: 1 }) : '—'}
+                      {p.inventario ? Number(p.inventario.quantity_kg).toLocaleString('es-CO', { maximumFractionDigits: 1 }) : '—'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                        p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
                       }`}>
-                        {p.activo ? 'Activo' : 'Inactivo'}
+                        {p.is_active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -209,7 +199,7 @@ export default function Productos() {
 
       {mostrarForm && (
         <Modal
-          titulo={productoEditar ? `Editar: ${productoEditar.nombre}` : 'Nuevo producto'}
+          titulo={productoEditar ? `Editar: ${productoEditar.name}` : 'Nuevo producto'}
           onClose={() => { setMostrarForm(false); setProductoEditar(null) }}
         >
           <FormProducto

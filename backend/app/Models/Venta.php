@@ -7,32 +7,34 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Venta extends Model
 {
+    protected $table = 'sales';
+
     protected $fillable = [
-        'fecha',
-        'cliente_id',
-        'producto_id',
-        'cantidad_kg',
-        'tipo_venta',
-        'precio_unitario',
+        'date',
+        'customer_id',
+        'product_id',
+        'quantity_kg',
+        'sale_type',
+        'unit_price',
         'total',
-        'forzado',
+        'forced',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
-        'cantidad_kg' => 'decimal:3',
-        'precio_unitario' => 'decimal:2',
+        'date' => 'date',
+        'quantity_kg' => 'decimal:3',
+        'unit_price' => 'decimal:2',
         'total' => 'decimal:2',
-        'forzado' => 'boolean',
+        'forced' => 'boolean',
     ];
 
     public function cliente(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Cliente::class, 'customer_id');
     }
 
     public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class);
+        return $this->belongsTo(Producto::class, 'product_id');
     }
 }

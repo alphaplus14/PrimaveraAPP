@@ -63,11 +63,11 @@ export default function Transformaciones() {
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🌿</span>
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{t.producto_origen?.nombre}</p>
-                      <p className="text-xs text-gray-400">{Number(t.cantidad_fruta_kg).toFixed(1)} kg entrada</p>
+                      <p className="text-sm font-semibold text-gray-800">{t.producto_origen?.name}</p>
+                      <p className="text-xs text-gray-400">{Number(t.fruit_quantity_kg).toFixed(1)} kg entrada</p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400">{t.fecha}</span>
+                  <span className="text-xs text-gray-400">{t.date}</span>
                 </div>
                 <div className="flex items-center gap-2 pl-8">
                   <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,11 +75,11 @@ export default function Transformaciones() {
                   </svg>
                   <span className="text-orange-600">🧃</span>
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">{t.producto_pulpa?.nombre}</p>
-                    <p className="text-xs text-gray-400">{Number(t.cantidad_pulpa_kg).toFixed(1)} kg pulpa</p>
+                    <p className="text-sm font-semibold text-gray-800">{t.producto_pulpa?.name}</p>
+                    <p className="text-xs text-gray-400">{Number(t.pulp_quantity_kg).toFixed(1)} kg pulpa</p>
                   </div>
                   <span className="ml-auto text-xs font-bold text-[#1a365d]">
-                    {rendimiento(Number(t.cantidad_fruta_kg), Number(t.cantidad_pulpa_kg))}
+                    {rendimiento(Number(t.fruit_quantity_kg), Number(t.pulp_quantity_kg))}
                   </span>
                 </div>
               </div>
@@ -102,21 +102,21 @@ export default function Transformaciones() {
               <tbody className="divide-y divide-gray-100">
                 {lista.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">{t.fecha}</td>
+                    <td className="px-4 py-3 text-gray-500">{t.date}</td>
                     <td className="px-4 py-3 font-medium text-green-700">
-                      🌿 {t.producto_origen?.nombre}
+                      🌿 {t.producto_origen?.name}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
-                      {Number(t.cantidad_fruta_kg).toFixed(1)}
+                      {Number(t.fruit_quantity_kg).toFixed(1)}
                     </td>
                     <td className="px-4 py-3 font-medium text-orange-600">
-                      🧃 {t.producto_pulpa?.nombre}
+                      🧃 {t.producto_pulpa?.name}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
-                      {Number(t.cantidad_pulpa_kg).toFixed(1)}
+                      {Number(t.pulp_quantity_kg).toFixed(1)}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-[#1a365d]">
-                      {rendimiento(Number(t.cantidad_fruta_kg), Number(t.cantidad_pulpa_kg))}
+                      {rendimiento(Number(t.fruit_quantity_kg), Number(t.pulp_quantity_kg))}
                     </td>
                   </tr>
                 ))}

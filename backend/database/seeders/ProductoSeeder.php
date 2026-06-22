@@ -11,15 +11,12 @@ class ProductoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Productos propios de la finca (también se pueden comprar a vecinos,
-        // pero es el mismo producto — la diferencia está en el proveedor, no en el producto)
         $propios = [
             'Plátano', 'Banano', 'Yuca', 'Limón', 'Mandarina',
             'Naranja', 'Arracacha', 'Fríjol', 'Cidra', 'Aguacate',
             'Café pelado', 'Café mojado',
         ];
 
-        // Productos que SOLO se compran (no se producen en la finca)
         $soloComprados = [
             'Maracuyá',
             'Guayaba dulce', 'Guayaba ácida', 'Mango Tommy',
@@ -36,53 +33,62 @@ class ProductoSeeder extends Seeder
             'Pulpa guayaba dulce', 'Pulpa lulo',
         ];
 
-        foreach ($propios as $nombre) {
+        $stockInicial = [
+            'Plátano' => 50,
+            'Banano' => 30,
+            'Limón' => 25,
+        ];
+
+        foreach ($propios as $name) {
             $p = Producto::create([
-                'nombre' => $nombre,
-                'categoria' => 'propio',
-                'unidad_medida' => 'kg',
-                'activo' => true,
-                'es_fruta_para_pulpa' => in_array($nombre, $frutasParaPulpa),
+                'name' => $name,
+                'category' => 'own',
+                'unit_of_measure' => 'kg',
+                'is_active' => true,
+                'is_fruit_for_pulp' => in_array($name, $frutasParaPulpa),
             ]);
-            Inventario::create(['producto_id' => $p->id, 'cantidad_kg' => 0, 'fecha_actualizacion' => now()]);
+            Inventario::create([
+                'product_id' => $p->id,
+                'quantity_kg' => $stockInicial[$name] ?? 0,
+                'quantity_updated_at' => now(),
+            ]);
         }
 
-        foreach ($soloComprados as $nombre) {
+        foreach ($soloComprados as $name) {
             $p = Producto::create([
-                'nombre' => $nombre,
-                'categoria' => 'comprado',
-                'unidad_medida' => 'kg',
-                'activo' => true,
-                'es_fruta_para_pulpa' => in_array($nombre, $frutasParaPulpa),
+                'name' => $name,
+                'category' => 'purchased',
+                'unit_of_measure' => 'kg',
+                'is_active' => true,
+                'is_fruit_for_pulp' => in_array($name, $frutasParaPulpa),
             ]);
-            Inventario::create(['producto_id' => $p->id, 'cantidad_kg' => 0, 'fecha_actualizacion' => now()]);
+            Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'quantity_updated_at' => now()]);
         }
 
-        foreach ($pulpasCompradas as $nombre) {
+        foreach ($pulpasCompradas as $name) {
             $p = Producto::create([
-                'nombre' => $nombre,
-                'categoria' => 'pulpa',
-                'unidad_medida' => 'kg',
-                'activo' => true,
+                'name' => $name,
+                'category' => 'pulp',
+                'unit_of_measure' => 'kg',
+                'is_active' => true,
             ]);
-            Inventario::create(['producto_id' => $p->id, 'cantidad_kg' => 0, 'fecha_actualizacion' => now()]);
+            Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'quantity_updated_at' => now()]);
         }
 
-        foreach ($pulpasPropiasNombres as $nombre) {
+        foreach ($pulpasPropiasNombres as $name) {
             $p = Producto::create([
-                'nombre' => $nombre,
-                'categoria' => 'pulpa',
-                'unidad_medida' => 'kg',
-                'activo' => true,
+                'name' => $name,
+                'category' => 'pulp',
+                'unit_of_measure' => 'kg',
+                'is_active' => true,
             ]);
-            Inventario::create(['producto_id' => $p->id, 'cantidad_kg' => 0, 'fecha_actualizacion' => now()]);
+            Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'quantity_updated_at' => now()]);
         }
 
-        // Proveedores de ejemplo
         Proveedor::insert([
-            ['nombre' => 'Finca propia',  'tipo' => 'otro',    'activo' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Vecino 1',      'tipo' => 'vecino',  'activo' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Galería local', 'tipo' => 'galeria', 'activo' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Finca propia',  'type' => 'other',    'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Vecino 1',      'type' => 'neighbor', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Galería local', 'type' => 'market',   'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 }
