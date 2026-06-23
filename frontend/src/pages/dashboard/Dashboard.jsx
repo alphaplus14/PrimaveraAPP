@@ -1,19 +1,40 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../../context/AuthContext'
-import { getResumenHoy } from '../../api/reportes'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { getResumenHoy, getVentasUltimasSemanas } from '../../api/reportes'
+import GraficoVentasSemanal from '../../components/dashboard/GraficoVentasSemanal'
+import PanelWidget from '../../components/dashboard/PanelWidget'
+import BotonOjo from '../../components/dashboard/BotonOjo'
+import ModalPaginado from '../../components/dashboard/ModalPaginado'
+import Modal from '../../components/ui/Modal'
+import { CATEGORY_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
+import {
+  agruparVentasPorSemana,
+  filtrarStockBajo,
+  formatCOP,
+  formatKg,
+  tiempoRelativo,
+} from '../../lib/dashboard'
 
-const formatCOP = (valor) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(valor)
+const PREVIEW_ITEMS = 8
 
-const formatKg = (valor) =>
-  new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(valor) + ' kg'
+const ACCIONES_RAPIDAS = [
+  { to: '/transformaciones', label: 'Transformaciones', icon: '/assets/icons/transformaciones%20icon.png', accent: 'purple' },
+  { to: '/labores', label: 'Labores', icon: '/assets/icons/labores%20icono.png', accent: 'cyan' },
+  { to: '/compras', label: 'Compras', icon: '/assets/icons/compras%20icon.png', accent: 'indigo' },
+  { to: '/inventario', label: 'Inventario', icon: '/assets/icons/inventario%20icon.png', accent: 'warning' },
+]
 
 export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [datos, setDatos] = useState(null)
+  const [ventasSemanal, setVentasSemanal] = useState([])
   const [cargando, setCargando] = useState(true)
+  const [cargandoGrafico, setCargandoGrafico] = useState(true)
+  const [modalStock, setModalStock] = useState(false)
+  const [detalleStock, setDetalleStock] = useState(null)
+  const [detalleVenta, setDetalleVenta] = useState(null)
 
   useEffect(() => {
     getResumenHoy()
@@ -22,6 +43,7 @@ export default function Dashboard() {
         const compras = comprasRes.data.data ?? []
         const inventario = invRes.data.data ?? []
         const productos = prodRes.data.data ?? []
+        const stockBajo = filtrarStockBajo(inventario)
 
         setDatos({
           ventasHoy: ventas.reduce((s, v) => s + Number(v.total), 0),
@@ -29,126 +51,344 @@ export default function Dashboard() {
           comprasHoy: compras.reduce((s, c) => s + Number(c.total), 0),
           comprasKgHoy: compras.reduce((s, c) => s + Number(c.quantity_kg), 0),
           productosActivos: productos.filter((p) => p.is_active).length,
-          stockBajo: inventario.filter((i) => Number(i.quantity_kg) < 5),
-          ultimasVentas: ventas.slice(0, 5),
+          stockBajo,
+          ventasHoyLista: [...ventas].sort((a, b) => b.id - a.id),
         })
       })
       .finally(() => setCargando(false))
+
+    getVentasUltimasSemanas(8)
+      .then((res) => {
+        const ventas = res.data?.data?.ventas ?? res.data?.ventas ?? []
+        setVentasSemanal(agruparVentasPorSemana(ventas, 8))
+      })
+      .catch(() => setVentasSemanal(agruparVentasPorSemana([], 8)))
+      .finally(() => setCargandoGrafico(false))
   }, [])
 
   const hoy = new Date().toLocaleDateString('es-CO', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6">
-      {/* Encabezado */}
+    <div className="p-4 md:p-6 pb-24 md:pb-6 min-h-full bg-[#F8F9FA]">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-[#1a365d]">Hola, {user?.name} 👋</h2>
-        <p className="text-gray-400 text-sm capitalize">{hoy}</p>
+        <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} 👋</h2>
+        <p className="text-slate-400 text-sm capitalize">{hoy}</p>
       </div>
 
       {cargando ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : (
         <>
-          {/* Tarjetas resumen */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <TarjetaStat label="Ventas hoy" valor={formatCOP(datos.ventasHoy)} sub={formatKg(datos.ventasKgHoy) + ' vendidos'} color="green" icono="💰" />
-            <TarjetaStat label="Compras hoy" valor={formatCOP(datos.comprasHoy)} sub={formatKg(datos.comprasKgHoy) + ' comprados'} color="blue" icono="🛒" />
-            <TarjetaStat label="Productos" valor={datos.productosActivos} sub="activos en catálogo" color="orange" icono="🌿" />
-            <TarjetaStat label="Stock bajo" valor={datos.stockBajo.length} sub="muy bajos o por acabarse" color="amber" icono="⚠️" />
+            <TarjetaStat
+              label="Ventas hoy"
+              valor={formatCOP(datos.ventasHoy)}
+              sub={`${formatKg(datos.ventasKgHoy)} vendidos`}
+              accent="purple"
+            />
+            <TarjetaStat
+              label="Compras hoy"
+              valor={formatCOP(datos.comprasHoy)}
+              sub={`${formatKg(datos.comprasKgHoy)} comprados`}
+              accent="cyan"
+            />
+            <TarjetaStat
+              label="Productos"
+              valor={datos.productosActivos}
+              sub="activos en catálogo"
+              accent="indigo"
+            />
+            <TarjetaStat
+              label="Stock bajo"
+              valor={datos.stockBajo.length}
+              sub="muy bajos o por acabarse"
+              accent="warning"
+            />
           </div>
 
-          {/* Alertas de stock bajo */}
-          {datos.stockBajo.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <p className="text-amber-700 font-semibold text-sm mb-2">
-                ⚠️ Stock bajo o agotado ({datos.stockBajo.length} productos)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {datos.stockBajo.map((item) => (
-                  <span key={item.id} className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                    {item.producto?.name} — {Number(item.quantity_kg).toFixed(1)} kg
-                  </span>
-                ))}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
+              <GraficoVentasSemanal datos={ventasSemanal} cargando={cargandoGrafico} />
+
+              <div>
+                <h3 className="font-semibold text-slate-800 text-sm mb-3">Accesos rápidos</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {ACCIONES_RAPIDAS.map((accion) => (
+                    <BotonAccionRapida
+                      key={accion.to}
+                      {...accion}
+                      onClick={() => navigate(accion.to)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Acciones rápidas */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Acciones rápidas</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Nueva venta',    icono: '💰', ruta: '/ventas',     color: 'bg-green-500' },
-                { label: 'Nueva compra',   icono: '🛒', ruta: '/compras',    color: 'bg-blue-500' },
-                { label: 'Ver inventario', icono: '📦', ruta: '/inventario', color: 'bg-purple-500' },
-                { label: 'Productos',      icono: '🌿', ruta: '/productos',  color: 'bg-orange-500' },
-              ].map(({ label, icono, ruta, color }) => (
-                <button
-                  key={ruta}
-                  onClick={() => navigate(ruta)}
-                  className={`${color} text-white rounded-xl p-4 text-left hover:opacity-90 active:scale-95 transition-all`}
-                >
-                  <span className="text-2xl block mb-1">{icono}</span>
-                  <span className="text-sm font-medium">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+            <div className="flex flex-col gap-4 md:gap-6 min-h-0">
+              <PanelWidget
+                titulo="Productos en bajo stock"
+                subtitulo="Menos de 5 kg disponibles"
+                onVerTodo={() => setModalStock(true)}
+                className="max-h-72 md:max-h-80"
+              >
+                {datos.stockBajo.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-8 px-4">
+                    Todo el inventario está en buen nivel.
+                  </p>
+                ) : (
+                  datos.stockBajo.slice(0, PREVIEW_ITEMS).map((item) => (
+                    <FilaStockBajo
+                      key={item.id}
+                      item={item}
+                      onVer={() => setDetalleStock(item)}
+                    />
+                  ))
+                )}
+              </PanelWidget>
 
-          {/* Últimas ventas del día */}
-          {datos.ultimasVentas.length > 0 ? (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Ventas de hoy</h3>
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                {datos.ultimasVentas.map((v, i) => (
-                  <div key={v.id} className={`flex items-center justify-between px-4 py-3 ${i < datos.ultimasVentas.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{v.producto?.name}</p>
-                      <p className="text-xs text-gray-400">{v.cliente?.name} · {formatKg(v.quantity_kg)}</p>
-                    </div>
-                    <span className="text-sm font-bold text-green-600">{formatCOP(v.total)}</span>
+              <PanelWidget
+                titulo="Ventas del día"
+                subtitulo="Últimas registradas hoy"
+                onVerTodo={() => navigate('/ventas')}
+                className="max-h-72 md:max-h-80"
+              >
+                {datos.ventasHoyLista.length === 0 ? (
+                  <div className="text-center py-8 px-4">
+                    <p className="text-sm text-gray-400 mb-2">No hay ventas hoy.</p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/ventas')}
+                      className="text-xs text-[#5C27FE] font-medium hover:underline"
+                    >
+                      Registrar venta →
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  datos.ventasHoyLista.slice(0, 10).map((venta) => (
+                    <FilaVentaDia key={venta.id} venta={venta} onVer={() => setDetalleVenta(venta)} />
+                  ))
+                )}
+              </PanelWidget>
+            </div>
+          </div>
+        </>
+      )}
+
+      {modalStock && datos && (
+        <ModalPaginado
+          titulo="Productos en bajo stock"
+          items={datos.stockBajo}
+          onClose={() => setModalStock(false)}
+          vacio="No hay productos con stock bajo."
+          renderItem={(item) => (
+            <FilaStockBajo
+              key={item.id}
+              item={item}
+              onVer={() => {
+                setModalStock(false)
+                setDetalleStock(item)
+              }}
+              enModal
+            />
+          )}
+        />
+      )}
+
+      {detalleStock && (
+        <Modal titulo="Detalle de inventario" onClose={() => setDetalleStock(null)}>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-400">Producto</p>
+              <p className="font-semibold text-gray-900">{detalleStock.producto?.name}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-400">Categoría</p>
+                <p className="font-medium text-gray-700">
+                  {CATEGORY_LABEL[detalleStock.producto?.category] ?? '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Stock actual</p>
+                <p
+                  className={`font-bold ${
+                    Number(detalleStock.quantity_kg) < 5 ? 'text-[#F59E0B]' : 'text-slate-900'
+                  }`}
+                >
+                  {formatKg(detalleStock.quantity_kg)}
+                </p>
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
-              <p className="text-3xl mb-2">📋</p>
-              <p className="text-sm">No hay ventas registradas hoy.</p>
-              <button onClick={() => navigate('/ventas')} className="mt-3 text-sm text-[#f56523] font-medium hover:underline">
-                Registrar primera venta →
-              </button>
+            {detalleStock.quantity_updated_at && (
+              <div>
+                <p className="text-xs text-gray-400">Última actualización</p>
+                <p className="text-gray-600">
+                  {new Date(detalleStock.quantity_updated_at).toLocaleString('es-CO')}
+                </p>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setDetalleStock(null)
+                navigate('/inventario')
+              }}
+              className="w-full mt-2 bg-[#6366F1] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-[#5C27FE] transition-colors"
+            >
+              Ir a inventario
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {detalleVenta && (
+        <Modal titulo="Detalle de venta" onClose={() => setDetalleVenta(null)}>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-400">Producto</p>
+              <p className="font-semibold text-gray-900">{detalleVenta.producto?.name}</p>
             </div>
-          )}
-        </>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-400">Cliente</p>
+                <p className="font-medium text-gray-700">{detalleVenta.cliente?.name ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Fecha</p>
+                <p className="font-medium text-gray-700">{detalleVenta.date}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Cantidad</p>
+                <p className="font-medium text-gray-700">{formatKg(detalleVenta.quantity_kg)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Tipo</p>
+                <p className="font-medium text-gray-700">
+                  {SALE_TYPE_LABEL[detalleVenta.sale_type] ?? detalleVenta.sale_type}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Precio / kg</p>
+                <p className="font-medium text-gray-700">{formatCOP(detalleVenta.unit_price)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Total</p>
+                <p className="font-bold text-[#10B981]">{formatCOP(detalleVenta.total)}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDetalleVenta(null)
+                navigate('/ventas')
+              }}
+              className="w-full mt-2 bg-[#6366F1] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-[#5C27FE] transition-colors"
+            >
+              Ver todas las ventas
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )
 }
 
-function TarjetaStat({ label, valor, sub, color, icono }) {
-  const colores = {
-    green:  'bg-green-50 text-green-700 border-green-100',
-    blue:   'bg-blue-50 text-blue-700 border-blue-100',
-    orange: 'bg-orange-50 text-orange-700 border-orange-100',
-    purple: 'bg-purple-50 text-purple-700 border-purple-100',
-    amber:  'bg-amber-50 text-amber-700 border-amber-100',
-  }
-  return (
-    <div className={`rounded-xl p-4 border ${colores[color]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium opacity-70">{label}</span>
-        <span className="text-lg">{icono}</span>
+function FilaStockBajo({ item, onVer, enModal = false }) {
+  const qty = Number(item.quantity_kg)
+  const critico = qty <= 0
+
+  const contenido = (
+    <>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-800 truncate">{item.producto?.name}</p>
+        <p className="text-xs text-slate-400">
+          <span className={critico ? 'text-rose-500 font-medium' : 'text-[#F59E0B] font-medium'}>
+            {formatKg(item.quantity_kg)}
+          </span>
+          {' · '}
+          {CATEGORY_LABEL[item.producto?.category] ?? item.producto?.category}
+        </p>
       </div>
-      <p className="text-xl font-bold leading-tight">{valor}</p>
-      <p className="text-xs opacity-60 mt-1">{sub}</p>
+      <BotonOjo onClick={onVer} label={`Ver ${item.producto?.name}`} />
+    </>
+  )
+
+  if (enModal) {
+    return (
+      <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-[#F3F0FF]/60">{contenido}</div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-[#F3F0FF]/40 transition-colors">
+      {contenido}
+    </div>
+  )
+}
+
+function FilaVentaDia({ venta, onVer }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-[#F3F0FF]/40 transition-colors">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-800 truncate">{venta.producto?.name}</p>
+        <p className="text-xs text-slate-400 truncate">
+          {venta.cliente?.name} · {formatKg(venta.quantity_kg)}
+        </p>
+      </div>
+      <div className="text-right shrink-0 mr-1 hidden sm:block">
+        <p className="text-xs font-semibold text-[#10B981]">{formatCOP(venta.total)}</p>
+        <p className="text-[10px] text-slate-400">{tiempoRelativo(venta.date)}</p>
+      </div>
+      <BotonOjo onClick={onVer} label={`Ver venta de ${venta.producto?.name}`} />
+    </div>
+  )
+}
+
+function BotonAccionRapida({ label, icon, accent, onClick }) {
+  const acentos = {
+    purple: 'border-indigo-100 hover:bg-[#F3F0FF] hover:border-indigo-200',
+    cyan: 'border-cyan-100 hover:bg-cyan-50 hover:border-cyan-200',
+    indigo: 'border-violet-100 hover:bg-violet-50 hover:border-violet-200',
+    warning: 'border-amber-100 hover:bg-amber-50 hover:border-amber-200',
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-2.5 p-4 rounded-2xl border bg-white shadow-sm transition-colors ${
+        acentos[accent] ?? acentos.purple
+      }`}
+    >
+      <img src={icon} alt="" className="w-8 h-8 object-contain opacity-75" />
+      <span className="text-xs font-medium text-slate-700 text-center leading-tight">{label}</span>
+    </button>
+  )
+}
+
+function TarjetaStat({ label, valor, sub, accent }) {
+  const acentos = {
+    purple: { border: 'border-indigo-100', valor: 'text-[#5C27FE]', sub: 'text-indigo-400' },
+    cyan: { border: 'border-cyan-100', valor: 'text-[#06B6D4]', sub: 'text-cyan-500' },
+    indigo: { border: 'border-violet-100', valor: 'text-[#6366F1]', sub: 'text-violet-400' },
+    warning: { border: 'border-amber-100', valor: 'text-[#F59E0B]', sub: 'text-amber-500' },
+  }
+  const a = acentos[accent] ?? acentos.purple
+
+  return (
+    <div className={`rounded-2xl p-4 border bg-white shadow-sm ${a.border}`}>
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <p className={`text-xl font-bold leading-tight mt-1 ${a.valor}`}>{valor}</p>
+      <p className={`text-xs mt-1 ${a.sub}`}>{sub}</p>
     </div>
   )
 }
