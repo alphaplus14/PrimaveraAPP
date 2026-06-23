@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getInventario, ajustarInventario } from '../../api/inventario'
 import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
+
+const POR_PAGINA = 15
 
 export default function Inventario() {
   const { data: items, cargando, recargar } = useApi(getInventario)
@@ -10,10 +12,21 @@ export default function Inventario() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [pagina, setPagina] = useState(1)
 
-  const lista = (items?.data ?? items ?? []).filter((i) =>
+  const todos = items?.data ?? items ?? []
+  const lista = todos.filter((i) =>
     i.producto?.name?.toLowerCase().includes(busqueda.toLowerCase())
   )
+
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
+  const paginaActual = Math.min(pagina, totalPaginas)
+  const inicio = (paginaActual - 1) * POR_PAGINA
+  const paginaItems = lista.slice(inicio, inicio + POR_PAGINA)
+
+  useEffect(() => {
+    setPagina(1)
+  }, [busqueda])
 
   const abrirAjuste = (item) => {
     setAjuste(item)
@@ -67,50 +80,71 @@ export default function Inventario() {
             <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="text-left px-4 py-3">Producto</th>
-                <th className="text-right px-4 py-3">Stock (kg)</th>
-                <th className="text-right px-4 py-3 hidden md:table-cell">Actualizado</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {lista.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    {item.producto?.name}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-semibold tabular-nums ${
-                    Number(item.quantity_kg) === 0
-                      ? 'text-red-400'
-                      : Number(item.quantity_kg) < 5
-                      ? 'text-amber-500'
-                      : 'text-gray-800'
-                  }`}>
-                    {Number(item.quantity_kg).toFixed(1)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
-                    {item.quantity_updated_at
-                      ? new Date(item.quantity_updated_at).toLocaleDateString('es-CO')
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => abrirAjuste(item)}
-                      className="text-xs text-[#1a365d] hover:text-[#f56523] font-medium transition-colors"
-                    >
-                      Ajustar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      ) : lista.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+          <p className="text-sm">
+            {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos en inventario.'}
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <tr>
+                  <th className="text-left px-4 py-3">Producto</th>
+                  <th className="text-right px-4 py-3">Stock (kg)</th>
+                  <th className="text-right px-4 py-3 hidden md:table-cell">Actualizado</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {paginaItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {item.producto?.name}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                      Number(item.quantity_kg) === 0
+                        ? 'text-red-400'
+                        : Number(item.quantity_kg) < 5
+                        ? 'text-amber-500'
+                        : 'text-gray-800'
+                    }`}>
+                      {Number(item.quantity_kg).toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
+                      {item.quantity_updated_at
+                        ? new Date(item.quantity_updated_at).toLocaleDateString('es-CO')
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => abrirAjuste(item)}
+                        className="text-xs text-[#1a365d] hover:text-[#f56523] font-medium transition-colors"
+                      >
+                        Ajustar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Paginacion
+            pagina={paginaActual}
+            totalPaginas={totalPaginas}
+            total={lista.length}
+            totalGeneral={todos.length}
+            porPagina={POR_PAGINA}
+            inicio={inicio}
+            filtrado={!!busqueda}
+            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+          />
+        </>
       )}
 
       {/* Modal de ajuste */}
@@ -191,6 +225,55 @@ export default function Inventario() {
             </div>
           </div>
         </Modal>
+      )}
+    </div>
+  )
+}
+
+function Paginacion({
+  pagina,
+  totalPaginas,
+  total,
+  totalGeneral,
+  porPagina,
+  inicio,
+  filtrado,
+  onAnterior,
+  onSiguiente,
+}) {
+  const fin = Math.min(inicio + porPagina, total)
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
+      <p className="text-xs text-gray-400 text-center sm:text-left">
+        {totalPaginas > 1
+          ? `Mostrando ${inicio + 1}–${fin} de ${total} producto${total !== 1 ? 's' : ''}`
+          : `${total} producto${total !== 1 ? 's' : ''}`}
+        {filtrado ? ` (filtrado de ${totalGeneral})` : ''}
+      </p>
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={pagina <= 1}
+            onClick={onAnterior}
+            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+          >
+            Anterior
+          </button>
+          <span className="text-xs text-gray-500 min-w-28 text-center">
+            Página {pagina} de {totalPaginas}
+          </span>
+          <button
+            type="button"
+            disabled={pagina >= totalPaginas}
+            onClick={onSiguiente}
+            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
+          >
+            Siguiente
+          </button>
+        </div>
       )}
     </div>
   )

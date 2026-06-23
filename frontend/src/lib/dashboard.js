@@ -17,6 +17,12 @@ export const formatCOP = (valor) =>
     Number(valor) || 0,
   )
 
+export function formatFechaCorta(valor) {
+  const d = parseFechaNegocio(valor)
+  if (!d) return '—'
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 export const formatKg = (valor) =>
   new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(Number(valor) || 0) + ' kg'
 
