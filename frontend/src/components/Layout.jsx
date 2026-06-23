@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { FLUX } from '../lib/dashboard'
 
 const nav = [
   { to: '/',                  label: 'Dashboard',        icon: '/assets/icons/dashboard%20icon.png' },
@@ -77,10 +78,10 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: FLUX.bg }}>
       {/* Sidebar — visible en pantallas medianas en adelante */}
       <aside
-        className={`hidden md:flex flex-col bg-[#1a365d] text-white transition-all duration-200 relative shrink-0 ${
+        className={`hidden md:flex flex-col bg-white border-r border-slate-100 text-slate-700 transition-all duration-200 relative shrink-0 ${
           sidebarCollapsed ? 'w-16' : 'w-56'
         }`}
       >
@@ -88,7 +89,7 @@ export default function Layout() {
           type="button"
           onClick={() => setSidebarCollapsed((c) => !c)}
           aria-label={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
-          className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+          className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
         >
           <ChevronIcon
             direction={sidebarCollapsed ? 'right' : 'left'}
@@ -97,7 +98,7 @@ export default function Layout() {
         </button>
 
         <div
-          className={`border-b border-white/10 ${
+          className={`border-b border-slate-100 ${
             sidebarCollapsed ? 'px-2 py-4 text-center' : 'px-5 py-6'
           }`}
         >
@@ -107,8 +108,8 @@ export default function Layout() {
             </span>
           ) : (
             <>
-              <h1 className="font-bold text-lg leading-tight">Finca Primavera</h1>
-              <p className="text-xs text-white/60 mt-0.5 truncate">{user?.name}</p>
+              <h1 className="font-bold text-lg leading-tight text-slate-800">Finca Primavera</h1>
+              <p className="text-xs text-slate-400 mt-0.5 truncate">{user?.name}</p>
             </>
           )}
         </div>
@@ -121,13 +122,18 @@ export default function Layout() {
               end={to === '/'}
               title={sidebarCollapsed ? label : undefined}
               className={({ isActive }) =>
-                `flex items-center rounded-lg text-sm transition-colors ${
+                `flex items-center rounded-xl text-sm transition-colors ${
                   sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5'
                 } ${
                   isActive
-                    ? 'bg-[#f56523] text-white font-medium'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    ? 'font-medium'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                 }`
+              }
+              style={({ isActive }) =>
+                isActive
+                  ? { backgroundColor: FLUX.lavender, color: FLUX.purpleDark }
+                  : undefined
               }
             >
               {({ isActive }) => (
@@ -144,7 +150,7 @@ export default function Layout() {
           type="button"
           onClick={handleLogout}
           title="Cerrar sesión"
-          className={`m-3 text-sm text-white/50 hover:text-white py-2 transition-colors ${
+          className={`m-3 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
             sidebarCollapsed ? 'px-2 text-center' : 'text-left px-3'
           }`}
         >
@@ -164,11 +170,11 @@ export default function Layout() {
             type="button"
             onClick={() => setMobileNavOpen(false)}
             aria-label="Ocultar menú"
-            className="absolute -top-8 right-3 flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md text-gray-600 hover:bg-gray-50 transition-colors"
+            className="absolute -top-8 right-3 flex items-center justify-center w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:bg-slate-50 transition-colors"
           >
             <ChevronIcon direction="down" className="w-4 h-4" />
           </button>
-          <nav className="bg-blue-500 flex justify-around py-2.5 border-t border-blue-400/40 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+          <nav className="bg-white flex justify-around py-2.5 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
             {nav.map(({ to, label, icon }) => (
               <NavLink
                 key={to}
@@ -177,9 +183,12 @@ export default function Layout() {
                 className={({ isActive }) =>
                   `flex flex-col items-center gap-1 px-1.5 py-1 rounded-lg text-[11px] leading-tight transition-colors min-w-0 ${
                     isActive
-                      ? 'text-[#f56523] font-semibold'
-                      : 'text-white font-medium'
+                      ? 'font-semibold'
+                      : 'text-slate-500 font-medium'
                   }`
+                }
+                style={({ isActive }) =>
+                  isActive ? { color: FLUX.purpleDark } : undefined
                 }
               >
                 {({ isActive }) => (
@@ -197,7 +206,7 @@ export default function Layout() {
           type="button"
           onClick={() => setMobileNavOpen(true)}
           aria-label="Mostrar menú"
-          className="md:hidden fixed bottom-4 right-4 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white shadow-lg border border-blue-400/50 hover:bg-blue-600 transition-colors"
+          className="md:hidden fixed bottom-4 right-4 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-[#6366F1] hover:bg-[#5C27FE] text-white shadow-lg transition-colors"
         >
           <ChevronIcon direction="up" className="w-5 h-5" />
         </button>
