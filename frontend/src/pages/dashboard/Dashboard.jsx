@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [modalStock, setModalStock] = useState(false)
   const [detalleStock, setDetalleStock] = useState(null)
   const [detalleVenta, setDetalleVenta] = useState(null)
+  const [errorCarga, setErrorCarga] = useState(null)
 
   useEffect(() => {
     getResumenHoy()
@@ -54,6 +55,11 @@ export default function Dashboard() {
           stockBajo,
           ventasHoyLista: [...ventas].sort((a, b) => b.id - a.id),
         })
+        setErrorCarga(null)
+      })
+      .catch(() => {
+        setDatos(null)
+        setErrorCarga('No se pudo conectar con el servidor. Verifica que el backend esté corriendo en el puerto 8000.')
       })
       .finally(() => setCargando(false))
 
@@ -85,6 +91,14 @@ export default function Dashboard() {
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
           ))}
+        </div>
+      ) : errorCarga || !datos ? (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 text-center">
+          <p className="text-sm text-slate-600 mb-2">{errorCarga ?? 'No hay datos disponibles.'}</p>
+          <p className="text-xs text-slate-400">
+            En la carpeta <code className="text-slate-500">backend</code> ejecuta:{' '}
+            <code className="text-slate-500">php artisan serve</code>
+          </p>
         </div>
       ) : (
         <>
