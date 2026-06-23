@@ -15,9 +15,9 @@ class CompraController extends Controller
     public function index(Request $request): JsonResponse
     {
         $compras = Compra::with(['producto', 'proveedor'])
-            ->when($request->desde, fn ($q) => $q->where('date', '>=', $request->desde))
-            ->when($request->hasta, fn ($q) => $q->where('date', '<=', $request->hasta))
-            ->orderByDesc('date')
+            ->when($request->desde, fn ($q) => $q->where('fecha', '>=', $request->desde))
+            ->when($request->hasta, fn ($q) => $q->where('fecha', '<=', $request->hasta))
+            ->orderByDesc('fecha')
             ->paginate(50);
 
         return response()->json($compras);
@@ -26,41 +26,41 @@ class CompraController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'date' => 'required|date',
-            'supplier_id' => 'required|exists:suppliers,id',
-            'product_id' => 'required|exists:products,id',
-            'quantity_kg' => 'required|numeric|min:0.001',
-            'unit_price' => 'required|numeric|min:0',
-            'notes' => 'nullable|string|max:1000',
+            'fecha'           => 'required|date',
+            'proveedor_id'    => 'required|exists:proveedores,id',
+            'producto_id'     => 'required|exists:productos,id',
+            'cantidad_kg'     => 'required|numeric|min:0.001',
+            'precio_unitario' => 'required|numeric|min:0',
+            'observaciones'   => 'nullable|string|max:1000',
         ], [
-            'date.required' => 'La fecha es obligatoria.',
-            'supplier_id.required' => 'El proveedor es obligatorio.',
-            'supplier_id.exists' => 'El proveedor no existe.',
-            'product_id.required' => 'El producto es obligatorio.',
-            'product_id.exists' => 'El producto no existe.',
-            'quantity_kg.required' => 'La cantidad en kg es obligatoria.',
-            'quantity_kg.min' => 'La cantidad debe ser mayor a cero.',
-            'unit_price.required' => 'El precio unitario es obligatorio.',
+            'fecha.required'           => 'La fecha es obligatoria.',
+            'proveedor_id.required'    => 'El proveedor es obligatorio.',
+            'proveedor_id.exists'      => 'El proveedor no existe.',
+            'producto_id.required'     => 'El producto es obligatorio.',
+            'producto_id.exists'       => 'El producto no existe.',
+            'cantidad_kg.required'     => 'La cantidad en kg es obligatoria.',
+            'cantidad_kg.min'          => 'La cantidad debe ser mayor a cero.',
+            'precio_unitario.required' => 'El precio unitario es obligatorio.',
         ]);
 
-        $data['total'] = round($data['quantity_kg'] * $data['unit_price'], 2);
+        $data['total'] = round($data['cantidad_kg'] * $data['precio_unitario'], 2);
 
         $compra = DB::transaction(function () use ($data) {
             $compra = Compra::create($data);
 
             $inventario = Inventario::firstOrCreate(
-                ['product_id' => $data['product_id']],
-                ['quantity_kg' => 0]
+                ['producto_id' => $data['producto_id']],
+                ['cantidad_kg' => 0]
             );
-            $inventario->increment('quantity_kg', $data['quantity_kg']);
-            $inventario->update(['quantity_updated_at' => now()]);
+            $inventario->increment('cantidad_kg', $data['cantidad_kg']);
+            $inventario->update(['fecha_actualizacion' => now()]);
 
             MovimientoInventario::create([
-                'product_id' => $data['product_id'],
-                'type' => 'purchase',
-                'quantity_kg' => $data['quantity_kg'],
-                'date' => $data['date'],
-                'reference_id' => $compra->id,
+                'producto_id'  => $data['producto_id'],
+                'tipo'         => 'compra',
+                'cantidad_kg'  => $data['cantidad_kg'],
+                'fecha'        => $data['fecha'],
+                'referencia_id' => $compra->id,
             ]);
 
             return $compra;

@@ -20,17 +20,17 @@ class ReporteController extends Controller
         ]);
 
         $ventas = Venta::with(['producto', 'cliente'])
-            ->whereBetween('date', [$request->desde, $request->hasta])
-            ->orderByDesc('date')
+            ->whereBetween('fecha', [$request->desde, $request->hasta])
+            ->orderByDesc('fecha')
             ->get();
 
         $resumen = [
-            'total_ventas' => $ventas->count(),
-            'total_kg' => $ventas->sum('quantity_kg'),
-            'total_pesos' => $ventas->sum('total'),
-            'por_producto' => $ventas->groupBy('producto.name')->map(fn ($v) => [
-                'quantity_kg' => $v->sum('quantity_kg'),
-                'total_pesos' => $v->sum('total'),
+            'total_ventas'  => $ventas->count(),
+            'total_kg'      => $ventas->sum('cantidad_kg'),
+            'total_pesos'   => $ventas->sum('total'),
+            'por_producto'  => $ventas->groupBy('producto.nombre')->map(fn ($v) => [
+                'cantidad_kg'  => $v->sum('cantidad_kg'),
+                'total_pesos'  => $v->sum('total'),
             ]),
         ];
 
@@ -45,14 +45,14 @@ class ReporteController extends Controller
         ]);
 
         $compras = Compra::with(['producto', 'proveedor'])
-            ->whereBetween('date', [$request->desde, $request->hasta])
-            ->orderByDesc('date')
+            ->whereBetween('fecha', [$request->desde, $request->hasta])
+            ->orderByDesc('fecha')
             ->get();
 
         $resumen = [
             'total_compras' => $compras->count(),
-            'total_kg' => $compras->sum('quantity_kg'),
-            'total_pesos' => $compras->sum('total'),
+            'total_kg'      => $compras->sum('cantidad_kg'),
+            'total_pesos'   => $compras->sum('total'),
         ];
 
         return response()->json(['data' => ['compras' => $compras, 'resumen' => $resumen]]);
@@ -61,7 +61,7 @@ class ReporteController extends Controller
     public function inventario(): JsonResponse
     {
         $inventario = Inventario::with('producto')
-            ->orderBy('quantity_kg', 'desc')
+            ->orderBy('cantidad_kg', 'desc')
             ->get();
 
         return response()->json(['data' => $inventario]);
@@ -70,15 +70,15 @@ class ReporteController extends Controller
     public function movimientos(Request $request): JsonResponse
     {
         $request->validate([
-            'desde' => 'required|date',
-            'hasta' => 'required|date|after_or_equal:desde',
-            'product_id' => 'nullable|exists:products,id',
+            'desde'       => 'required|date',
+            'hasta'       => 'required|date|after_or_equal:desde',
+            'producto_id' => 'nullable|exists:productos,id',
         ]);
 
         $movimientos = MovimientoInventario::with('producto')
-            ->whereBetween('date', [$request->desde, $request->hasta])
-            ->when($request->product_id, fn ($q) => $q->where('product_id', $request->product_id))
-            ->orderByDesc('date')
+            ->whereBetween('fecha', [$request->desde, $request->hasta])
+            ->when($request->producto_id, fn ($q) => $q->where('producto_id', $request->producto_id))
+            ->orderByDesc('fecha')
             ->get();
 
         return response()->json(['data' => $movimientos]);

@@ -24,14 +24,14 @@ export default function Dashboard() {
         const productos = prodRes.data.data ?? []
 
         setDatos({
-          ventasHoy: ventas.reduce((s, v) => s + Number(v.total), 0),
-          ventasKgHoy: ventas.reduce((s, v) => s + Number(v.quantity_kg), 0),
-          comprasHoy: compras.reduce((s, c) => s + Number(c.total), 0),
-          comprasKgHoy: compras.reduce((s, c) => s + Number(c.quantity_kg), 0),
-          productosActivos: productos.filter((p) => p.is_active).length,
-          itemsConStock: inventario.filter((i) => Number(i.quantity_kg) > 0).length,
-          stockBajo: inventario.filter((i) => Number(i.quantity_kg) >= 0 && Number(i.quantity_kg) < 5),
-          ultimasVentas: ventas.slice(0, 5),
+          ventasHoy:       ventas.reduce((s, v) => s + Number(v.total), 0),
+          ventasKgHoy:     ventas.reduce((s, v) => s + Number(v.cantidad_kg), 0),
+          comprasHoy:      compras.reduce((s, c) => s + Number(c.total), 0),
+          comprasKgHoy:    compras.reduce((s, c) => s + Number(c.cantidad_kg), 0),
+          productosActivos: productos.filter((p) => p.activo).length,
+          itemsConStock:   inventario.filter((i) => Number(i.cantidad_kg) > 0).length,
+          stockBajo:       inventario.filter((i) => Number(i.cantidad_kg) >= 0 && Number(i.cantidad_kg) < 5),
+          ultimasVentas:   ventas.slice(0, 5),
         })
       })
       .finally(() => setCargando(false))
@@ -74,7 +74,7 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-2">
                 {datos.stockBajo.map((item) => (
                   <span key={item.id} className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                    {item.producto?.name} — {Number(item.quantity_kg).toFixed(1)} kg
+                    {item.producto?.nombre} — {Number(item.cantidad_kg).toFixed(1)} kg
                   </span>
                 ))}
               </div>
@@ -111,8 +111,8 @@ export default function Dashboard() {
                 {datos.ultimasVentas.map((v, i) => (
                   <div key={v.id} className={`flex items-center justify-between px-4 py-3 ${i < datos.ultimasVentas.length - 1 ? 'border-b border-gray-100' : ''}`}>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{v.producto?.name}</p>
-                      <p className="text-xs text-gray-400">{v.cliente?.name} · {formatKg(v.quantity_kg)}</p>
+                      <p className="text-sm font-medium text-gray-800">{v.producto?.nombre}</p>
+                      <p className="text-xs text-gray-400">{v.cliente?.nombre} · {formatKg(v.cantidad_kg)}</p>
                     </div>
                     <span className="text-sm font-bold text-green-600">{formatCOP(v.total)}</span>
                   </div>

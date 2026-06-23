@@ -14,9 +14,9 @@ class LaborController extends Controller
     public function index(Request $request): JsonResponse
     {
         $labores = Labor::with('insumos')
-            ->when($request->desde, fn ($q) => $q->where('date', '>=', $request->desde))
-            ->when($request->hasta, fn ($q) => $q->where('date', '<=', $request->hasta))
-            ->orderByDesc('date')
+            ->when($request->desde, fn ($q) => $q->where('fecha', '>=', $request->desde))
+            ->when($request->hasta, fn ($q) => $q->where('fecha', '<=', $request->hasta))
+            ->orderByDesc('fecha')
             ->paginate(50);
 
         return response()->json($labores);
@@ -25,36 +25,36 @@ class LaborController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'date' => 'required|date',
-            'task_type' => 'required|string|max:255',
-            'crop' => 'nullable|string|max:255',
-            'assigned_to' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'supplies' => 'sometimes|array',
-            'supplies.*.supply_id' => 'required_with:supplies|exists:supplies,id',
-            'supplies.*.quantity_used' => 'required_with:supplies|numeric|min:0.001',
+            'fecha'        => 'required|date',
+            'tipo_labor'   => 'required|string|max:255',
+            'cultivo'      => 'nullable|string|max:255',
+            'responsable'  => 'nullable|string|max:255',
+            'descripcion'  => 'nullable|string',
+            'insumos'      => 'sometimes|array',
+            'insumos.*.insumo_id'    => 'required_with:insumos|exists:insumos,id',
+            'insumos.*.cantidad_usada' => 'required_with:insumos|numeric|min:0.001',
         ], [
-            'date.required' => 'La fecha es obligatoria.',
-            'task_type.required' => 'El tipo de labor es obligatorio.',
-            'supplies.*.supply_id.exists' => 'Uno de los insumos no existe.',
-            'supplies.*.quantity_used.min' => 'La cantidad de insumo debe ser mayor a cero.',
+            'fecha.required'        => 'La fecha es obligatoria.',
+            'tipo_labor.required'   => 'El tipo de labor es obligatorio.',
+            'insumos.*.insumo_id.exists'       => 'Uno de los insumos no existe.',
+            'insumos.*.cantidad_usada.min'      => 'La cantidad de insumo debe ser mayor a cero.',
         ]);
 
         $labor = DB::transaction(function () use ($data) {
-            $supplies = $data['supplies'] ?? [];
-            unset($data['supplies']);
+            $insumos = $data['insumos'] ?? [];
+            unset($data['insumos']);
 
             $labor = Labor::create($data);
 
-            if (! empty($supplies)) {
-                foreach ($supplies as $item) {
+            if (! empty($insumos)) {
+                foreach ($insumos as $item) {
                     $labor->laborInsumos()->create([
-                        'supply_id' => $item['supply_id'],
-                        'quantity_used' => $item['quantity_used'],
+                        'insumo_id'     => $item['insumo_id'],
+                        'cantidad_usada' => $item['cantidad_usada'],
                     ]);
 
-                    Insumo::where('id', $item['supply_id'])
-                        ->decrement('current_stock', $item['quantity_used']);
+                    Insumo::where('id', $item['insumo_id'])
+                        ->decrement('stock_actual', $item['cantidad_usada']);
                 }
             }
 
@@ -74,11 +74,11 @@ class LaborController extends Controller
     public function update(Request $request, Labor $labor): JsonResponse
     {
         $data = $request->validate([
-            'date' => 'sometimes|date',
-            'task_type' => 'sometimes|string|max:255',
-            'crop' => 'nullable|string|max:255',
-            'assigned_to' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'fecha'       => 'sometimes|date',
+            'tipo_labor'  => 'sometimes|string|max:255',
+            'cultivo'     => 'nullable|string|max:255',
+            'responsable' => 'nullable|string|max:255',
+            'descripcion' => 'nullable|string',
         ]);
 
         $labor->update($data);
