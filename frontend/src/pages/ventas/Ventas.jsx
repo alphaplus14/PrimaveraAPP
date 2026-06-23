@@ -4,10 +4,10 @@ import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import FormVenta from './FormVenta'
 
+const TIPO_VENTA_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
+
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-
-const TIPO_VENTA_LABEL = { detal: 'Detal', mayorista: 'Mayorista' }
 
 export default function Ventas() {
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -51,28 +51,23 @@ export default function Ventas() {
         </div>
       ) : (
         <>
-          {/* Móvil: tarjetas */}
+          {/* Móvil */}
           <div className="md:hidden space-y-3">
             {lista.map((v) => (
               <div key={v.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <p className="font-semibold text-gray-800">{v.producto?.nombre}</p>
+                  <p className="font-semibold text-gray-800">{v.product?.name}</p>
                   <span className="font-bold text-green-600 text-sm">{formatCOP(v.total)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-400">
-                  <span>{v.cliente?.nombre} · {Number(v.cantidad_kg).toFixed(1)} kg</span>
-                  <div className="flex items-center gap-1">
-                    <span className={`px-1.5 py-0.5 rounded-full font-medium ${
-                      v.tipo_venta === 'mayorista' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
-                    }`}>{TIPO_VENTA_LABEL[v.tipo_venta] ?? v.tipo_venta}</span>
-                    <span>{v.fecha}</span>
-                  </div>
+                  <span>{v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg · {TIPO_VENTA_LABEL[v.sale_type]}</span>
+                  <span>{v.date}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Desktop: tabla */}
+          {/* Desktop */}
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
@@ -82,21 +77,19 @@ export default function Ventas() {
                   <th className="text-left px-4 py-3">Cliente</th>
                   <th className="text-left px-4 py-3">Tipo</th>
                   <th className="text-right px-4 py-3">kg</th>
+                  <th className="text-right px-4 py-3">$/kg</th>
                   <th className="text-right px-4 py-3">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">{v.fecha}</td>
-                    <td className="px-4 py-3 font-medium">{v.producto?.nombre}</td>
-                    <td className="px-4 py-3 text-gray-600">{v.cliente?.nombre}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        v.tipo_venta === 'mayorista' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                      }`}>{TIPO_VENTA_LABEL[v.tipo_venta] ?? v.tipo_venta}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">{Number(v.cantidad_kg).toFixed(1)}</td>
+                    <td className="px-4 py-3 text-gray-500">{v.date}</td>
+                    <td className="px-4 py-3 font-medium">{v.product?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{v.customer?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{TIPO_VENTA_LABEL[v.sale_type]}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{Number(v.quantity_kg).toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">{formatCOP(v.unit_price)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-green-700">{formatCOP(v.total)}</td>
                   </tr>
                 ))}

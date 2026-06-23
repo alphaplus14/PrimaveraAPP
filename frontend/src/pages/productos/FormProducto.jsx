@@ -11,37 +11,37 @@ const hoy = () => new Date().toISOString().split('T')[0]
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
-const TIPO_PRECIO_LABEL = { detal: 'Detal', mayorista: 'Mayorista' }
+const TIPO_PRECIO_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
 
 const CATEGORIAS = [
-  { value: 'propio',    label: 'Propio',   desc: 'Se produce en la finca' },
-  { value: 'comprado',  label: 'Comprado', desc: 'Se compra a proveedores' },
-  { value: 'pulpa',     label: 'Pulpa',    desc: 'Producto procesado' },
+  { value: 'own',       label: 'Propio',   desc: 'Se produce en la finca' },
+  { value: 'purchased', label: 'Comprado', desc: 'Se compra a proveedores' },
+  { value: 'pulp',      label: 'Pulpa',    desc: 'Producto procesado' },
 ]
 
 export default function FormProducto({ producto, onGuardado, onCerrar }) {
   const esEdicion = !!producto
 
   const [form, setForm] = useState({
-    nombre:              producto?.nombre ?? '',
-    categoria:           producto?.categoria ?? 'propio',
-    es_fruta_para_pulpa: producto?.es_fruta_para_pulpa ?? false,
-    activo:              producto?.activo ?? true,
+    name:          producto?.name          ?? '',
+    category:      producto?.category      ?? 'own',
+    is_pulp_fruit: producto?.is_pulp_fruit ?? false,
+    active:        producto?.active        ?? true,
   })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-  const [precios, setPrecios] = useState({ detal: null, mayorista: null })
+  const [precios, setPrecios] = useState({ retail: null, wholesale: null })
   const [editandoPrecio, setEditandoPrecio] = useState(null)
-  const [formPrecio, setFormPrecio] = useState({ valor: '', fecha_vigencia_desde: hoy() })
+  const [formPrecio, setFormPrecio] = useState({ value: '', valid_from: hoy() })
   const [guardandoPrecio, setGuardandoPrecio] = useState(false)
 
   useEffect(() => {
     if (esEdicion && producto.id) {
       getPrecioActual(producto.id).then(({ data }) => {
         setPrecios({
-          detal:     data.data?.detal     ?? null,
-          mayorista: data.data?.mayorista ?? null,
+          retail:    data.data?.retail    ?? null,
+          wholesale: data.data?.wholesale ?? null,
         })
       }).catch(() => {})
     }
@@ -49,7 +49,7 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!form.nombre.trim()) { setError('El nombre es obligatorio.'); return }
+    if (!form.name.trim()) { setError('El nombre es obligatorio.'); return }
 
     setGuardando(true)
     try {
@@ -67,20 +67,20 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
   }
 
   const handleGuardarPrecio = async () => {
-    if (!formPrecio.valor || Number(formPrecio.valor) <= 0) {
+    if (!formPrecio.value || Number(formPrecio.value) <= 0) {
       setError('El precio debe ser mayor a cero.')
       return
     }
     setGuardandoPrecio(true)
     try {
       const { data } = await crearPrecio(producto.id, {
-        tipo:                 editandoPrecio,
-        valor:                formPrecio.valor,
-        fecha_vigencia_desde: formPrecio.fecha_vigencia_desde,
+        type:       editandoPrecio,
+        value:      formPrecio.value,
+        valid_from: formPrecio.valid_from,
       })
       setPrecios((prev) => ({ ...prev, [editandoPrecio]: data.data }))
       setEditandoPrecio(null)
-      setFormPrecio({ valor: '', fecha_vigencia_desde: hoy() })
+      setFormPrecio({ value: '', valid_from: hoy() })
     } catch (err) {
       setError(err.response?.data?.message ?? 'Error al guardar el precio.')
     } finally {
@@ -91,8 +91,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
   const abrirEditarPrecio = (tipo) => {
     setEditandoPrecio(tipo)
     setFormPrecio({
-      valor:                precios[tipo] ? String(Number(precios[tipo].valor)) : '',
-      fecha_vigencia_desde: hoy(),
+      value:      precios[tipo] ? String(Number(precios[tipo].value)) : '',
+      valid_from: hoy(),
     })
     setError(null)
   }
@@ -105,8 +105,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
           type="text"
           autoFocus
           placeholder="Ej: Plátano, Maracuyá, Pulpa de Lulo..."
-          value={form.nombre}
-          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           className={inputClass}
         />
       </div>
@@ -118,9 +118,9 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
             <button
               key={cat.value}
               type="button"
-              onClick={() => setForm((f) => ({ ...f, categoria: cat.value }))}
+              onClick={() => setForm((f) => ({ ...f, category: cat.value }))}
               className={`flex flex-col items-center p-3 rounded-xl border-2 text-center transition-all ${
-                form.categoria === cat.value
+                form.category === cat.value
                   ? 'border-[#f56523] bg-orange-50 text-[#f56523]'
                   : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
               }`}
@@ -132,17 +132,17 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         </div>
       </div>
 
-      {form.categoria !== 'pulpa' && (
+      {form.category !== 'pulp' && (
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, es_fruta_para_pulpa: !f.es_fruta_para_pulpa }))}
+              onClick={() => setForm((f) => ({ ...f, is_pulp_fruit: !f.is_pulp_fruit }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.es_fruta_para_pulpa ? 'bg-[#f56523]' : 'bg-gray-300'
+                form.is_pulp_fruit ? 'bg-[#f56523]' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.es_fruta_para_pulpa ? 'translate-x-5' : 'translate-x-1'
+                form.is_pulp_fruit ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -157,13 +157,13 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, activo: !f.activo }))}
+              onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.activo ? 'bg-green-500' : 'bg-gray-300'
+                form.active ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.activo ? 'translate-x-5' : 'translate-x-1'
+                form.active ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
             Precios de venta
           </label>
           <div className="space-y-2">
-            {['detal', 'mayorista'].map((tipo) => (
+            {['retail', 'wholesale'].map((tipo) => (
               <div key={tipo}>
                 {editandoPrecio === tipo ? (
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
@@ -196,8 +196,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                           min="1"
                           step="100"
                           placeholder="0"
-                          value={formPrecio.valor}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, valor: e.target.value }))}
+                          value={formPrecio.value}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, value: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -205,8 +205,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                         <label className="text-xs text-gray-400 mb-0.5 block">Vigente desde</label>
                         <input
                           type="date"
-                          value={formPrecio.fecha_vigencia_desde}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, fecha_vigencia_desde: e.target.value }))}
+                          value={formPrecio.valid_from}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, valid_from: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -233,7 +233,7 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                       <p className="text-xs text-gray-400">{TIPO_PRECIO_LABEL[tipo]}</p>
                       <p className="text-sm font-semibold text-gray-800">
                         {precios[tipo]
-                          ? formatCOP(precios[tipo].valor) + ' / kg'
+                          ? formatCOP(precios[tipo].value) + ' / kg'
                           : <span className="text-gray-400 font-normal">Sin precio</span>
                         }
                       </p>

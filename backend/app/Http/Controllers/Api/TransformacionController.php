@@ -6,85 +6,76 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
 use App\Models\Transformacion;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TransformacionController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index()
     {
-        $transformaciones = Transformacion::with(['productoOrigen', 'productoPulpa'])
-            ->when($request->desde, fn ($q) => $q->where('fecha', '>=', $request->desde))
-            ->when($request->hasta, fn ($q) => $q->where('fecha', '<=', $request->hasta))
-            ->orderByDesc('fecha')
-            ->paginate(50);
+        $transformations = Transformacion::with(['sourceProduct', 'pulpProduct'])
+            ->orderByDesc('date')
+            ->get();
 
-        return response()->json($transformaciones);
+        return response()->json(['data' => $transformations]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $data = $request->validate([
-            'fecha'              => 'required|date',
-            'producto_origen_id' => 'required|exists:productos,id',
-            'cantidad_fruta_kg'  => 'required|numeric|min:0.001',
-            'producto_pulpa_id'  => 'required|exists:productos,id|different:producto_origen_id',
-            'cantidad_pulpa_kg'  => 'required|numeric|min:0.001',
-            'observaciones'      => 'nullable|string|max:1000',
-        ], [
-            'producto_origen_id.required' => 'El producto origen es obligatorio.',
-            'cantidad_fruta_kg.min'       => 'La cantidad de fruta debe ser mayor a cero.',
-            'producto_pulpa_id.required'  => 'El producto pulpa es obligatorio.',
-            'producto_pulpa_id.different' => 'El producto pulpa debe ser diferente al origen.',
-            'cantidad_pulpa_kg.min'       => 'La cantidad de pulpa debe ser mayor a cero.',
+            'date'               => 'required|date',
+            'source_product_id'  => 'required|exists:products,id',
+            'fruit_quantity_kg'  => 'required|numeric|min:0.001',
+            'pulp_product_id'    => 'required|exists:products,id|different:source_product_id',
+            'pulp_quantity_kg'   => 'required|numeric|min:0.001',
+            'notes'              => 'nullable|string',
         ]);
 
-        $transformacion = DB::transaction(function () use ($data) {
-            $transformacion = Transformacion::create($data);
+        $transformation = DB::transaction(function () use ($data) {
+            $transformation = Transformacion::create($data);
 
-            $invOrigen = Inventario::firstOrCreate(
-                ['producto_id' => $data['producto_origen_id']],
-                ['cantidad_kg' => 0]
-            );
-            $invOrigen->decrement('cantidad_kg', $data['cantidad_fruta_kg']);
-            $invOrigen->update(['fecha_actualizacion' => now()]);
+            // Decrease source fruit inventory
+            $sourceInv = Inventario::where('product_id', $data['source_product_id'])->first();
+            if ($sourceInv) {
+                $sourceInv->quantity_kg      -= $data['fruit_quantity_kg'];
+                $sourceInv->stock_updated_at  = now();
+                $sourceInv->save();
+            }
 
+            // Increase pulp inventory
+            $pulpInv = Inventario::where('product_id', $data['pulp_product_id'])->first();
+            if ($pulpInv) {
+                $pulpInv->quantity_kg      += $data['pulp_quantity_kg'];
+                $pulpInv->stock_updated_at  = now();
+                $pulpInv->save();
+            }
+
+            // Movement: fruit out
             MovimientoInventario::create([
-                'producto_id'  => $data['producto_origen_id'],
-                'tipo'         => 'transformacion',
-                'cantidad_kg'  => -$data['cantidad_fruta_kg'],
-                'fecha'        => $data['fecha'],
-                'referencia_id' => $transformacion->id,
+                'product_id'   => $data['source_product_id'],
+                'type'         => 'transformation',
+                'quantity_kg'  => -$data['fruit_quantity_kg'],
+                'date'         => $data['date'],
+                'reference_id' => $transformation->id,
             ]);
 
-            $invPulpa = Inventario::firstOrCreate(
-                ['producto_id' => $data['producto_pulpa_id']],
-                ['cantidad_kg' => 0]
-            );
-            $invPulpa->increment('cantidad_kg', $data['cantidad_pulpa_kg']);
-            $invPulpa->update(['fecha_actualizacion' => now()]);
-
+            // Movement: pulp in
             MovimientoInventario::create([
-                'producto_id'  => $data['producto_pulpa_id'],
-                'tipo'         => 'transformacion',
-                'cantidad_kg'  => $data['cantidad_pulpa_kg'],
-                'fecha'        => $data['fecha'],
-                'referencia_id' => $transformacion->id,
+                'product_id'   => $data['pulp_product_id'],
+                'type'         => 'transformation',
+                'quantity_kg'  => $data['pulp_quantity_kg'],
+                'date'         => $data['date'],
+                'reference_id' => $transformation->id,
             ]);
 
-            return $transformacion;
+            return $transformation;
         });
 
-        return response()->json([
-            'data' => $transformacion->load(['productoOrigen', 'productoPulpa']),
-        ], 201);
+        return response()->json(['data' => $transformation->load(['sourceProduct', 'pulpProduct'])], 201);
     }
 
-    public function show(Transformacion $transformacion): JsonResponse
+    public function show(Transformacion $transformacion)
     {
-        return response()->json([
-            'data' => $transformacion->load(['productoOrigen', 'productoPulpa']),
-        ]);
+        return response()->json(['data' => $transformacion->load(['sourceProduct', 'pulpProduct'])]);
     }
 }

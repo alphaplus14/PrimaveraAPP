@@ -6,76 +6,50 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class InventarioController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        $inventario = Inventario::with('producto')
-            ->orderBy('cantidad_kg', 'desc')
+        $inventories = Inventario::with('product')
+            ->orderBy('quantity_kg')
             ->get();
 
-        return response()->json(['data' => $inventario]);
+        return response()->json(['data' => $inventories]);
     }
 
-    public function show(Producto $producto): JsonResponse
+    public function show(Producto $producto)
     {
-        $inventario = $producto->inventario;
-
-        if (! $inventario) {
-            return response()->json(['message' => 'Este producto no tiene registro de inventario.'], 404);
-        }
-
-        $movimientos = MovimientoInventario::where('producto_id', $producto->id)
-            ->orderByDesc('fecha')
-            ->orderByDesc('created_at')
-            ->limit(20)
-            ->get();
-
-        return response()->json([
-            'data' => [
-                'inventario'          => $inventario,
-                'movimientos_recientes' => $movimientos,
-            ],
-        ]);
+        $inventory = Inventario::where('product_id', $producto->id)->firstOrFail();
+        return response()->json(['data' => $inventory->load('product')]);
     }
 
-    public function ajuste(Request $request, Producto $producto): JsonResponse
+    public function adjust(Request $request, Producto $producto)
     {
         $data = $request->validate([
-            'cantidad_kg' => 'required|numeric',
-            'motivo'      => 'required|string|max:500',
-        ], [
-            'cantidad_kg.required' => 'La cantidad es obligatoria.',
-            'cantidad_kg.numeric'  => 'La cantidad debe ser un número.',
-            'motivo.required'      => 'El motivo del ajuste es obligatorio.',
+            'quantity_kg' => 'required|numeric',
+            'reason'      => 'required|string|max:255',
         ]);
 
-        $inventario = $producto->inventario;
+        $inventory = Inventario::where('product_id', $producto->id)->firstOrFail();
 
-        if (! $inventario) {
-            return response()->json(['message' => 'Este producto no tiene registro de inventario.'], 404);
-        }
-
-        DB::transaction(function () use ($inventario, $producto, $data) {
-            $inventario->increment('cantidad_kg', $data['cantidad_kg']);
-            $inventario->update(['fecha_actualizacion' => now()]);
+        DB::transaction(function () use ($inventory, $data, $producto) {
+            $previous                    = $inventory->quantity_kg;
+            $inventory->quantity_kg      = $data['quantity_kg'];
+            $inventory->stock_updated_at = now();
+            $inventory->save();
 
             MovimientoInventario::create([
-                'producto_id' => $producto->id,
-                'tipo'        => 'ajuste',
-                'cantidad_kg' => $data['cantidad_kg'],
-                'fecha'       => now()->toDateString(),
-                'motivo'      => $data['motivo'],
+                'product_id'  => $producto->id,
+                'type'        => 'adjustment',
+                'quantity_kg' => $data['quantity_kg'] - $previous,
+                'date'        => now()->toDateString(),
+                'reason'      => $data['reason'],
             ]);
         });
 
-        return response()->json([
-            'data'    => $inventario->fresh(),
-            'message' => 'Ajuste de inventario registrado.',
-        ]);
+        return response()->json(['data' => $inventory->load('product')]);
     }
 }

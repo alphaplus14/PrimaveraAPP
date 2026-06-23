@@ -7,22 +7,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Precio extends Model
 {
-    protected $table = 'precios';
+    protected $table = 'prices';
 
     protected $fillable = [
-        'producto_id',
-        'tipo',
-        'valor',
-        'fecha_vigencia_desde',
+        'product_id',
+        'type',
+        'value',
+        'valid_from',
     ];
 
     protected $casts = [
-        'valor'                => 'decimal:2',
-        'fecha_vigencia_desde' => 'date',
+        'value'      => 'decimal:2',
+        'valid_from' => 'date',
     ];
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'producto_id');
+        return $this->belongsTo(Producto::class, 'product_id');
     }
 }

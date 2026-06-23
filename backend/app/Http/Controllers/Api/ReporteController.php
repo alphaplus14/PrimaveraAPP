@@ -7,80 +7,112 @@ use App\Models\Compra;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ReporteController extends Controller
 {
-    public function ventas(Request $request): JsonResponse
+    public function ventas(Request $request)
+    {
+        $query = Venta::with(['product', 'customer'])
+            ->orderByDesc('date');
+
+        if ($request->filled('desde') && $request->filled('hasta')) {
+            $query->whereBetween('date', [$request->desde, $request->hasta]);
+        }
+        if ($request->filled('product_id')) {
+            $request->validate(['product_id' => 'exists:products,id']);
+            $query->where('product_id', $request->product_id);
+        }
+
+        return response()->json(['data' => $query->get()]);
+    }
+
+    public function compras(Request $request)
+    {
+        $query = Compra::with(['product', 'supplier'])
+            ->orderByDesc('date');
+
+        if ($request->filled('desde') && $request->filled('hasta')) {
+            $query->whereBetween('date', [$request->desde, $request->hasta]);
+        }
+        if ($request->filled('product_id')) {
+            $request->validate(['product_id' => 'exists:products,id']);
+            $query->where('product_id', $request->product_id);
+        }
+
+        return response()->json(['data' => $query->get()]);
+    }
+
+    public function movimientos(Request $request)
+    {
+        $query = MovimientoInventario::with('product')
+            ->orderByDesc('date');
+
+        if ($request->filled('desde') && $request->filled('hasta')) {
+            $query->whereBetween('date', [$request->desde, $request->hasta]);
+        }
+        if ($request->filled('product_id')) {
+            $request->validate(['product_id' => 'exists:products,id']);
+            $query->where('product_id', $request->product_id);
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        return response()->json(['data' => $query->get()]);
+    }
+
+    public function inventario()
+    {
+        return response()->json([
+            'data' => Inventario::with('product')->orderBy('quantity_kg')->get(),
+        ]);
+    }
+
+    public function resumenHoy()
+    {
+        $today = now()->toDateString();
+
+        $salesToday     = Venta::whereDate('date', $today)->get();
+        $purchasesToday = Compra::whereDate('date', $today)->get();
+
+        return response()->json([
+            'data' => [
+                'salesToday'            => $salesToday->count(),
+                'revenueTodayRetail'    => $salesToday->where('sale_type', 'retail')->sum('total'),
+                'revenueTodayWholesale' => $salesToday->where('sale_type', 'wholesale')->sum('total'),
+                'purchasesToday'        => $purchasesToday->count(),
+                'spentToday'            => $purchasesToday->sum('total'),
+            ],
+        ]);
+    }
+
+    public function resumenVentas(Request $request)
     {
         $request->validate([
             'desde' => 'required|date',
             'hasta' => 'required|date|after_or_equal:desde',
         ]);
 
-        $ventas = Venta::with(['producto', 'cliente'])
-            ->whereBetween('fecha', [$request->desde, $request->hasta])
-            ->orderByDesc('fecha')
+        $sales = Venta::with('product')
+            ->whereBetween('date', [$request->desde, $request->hasta])
             ->get();
 
-        $resumen = [
-            'total_ventas'  => $ventas->count(),
-            'total_kg'      => $ventas->sum('cantidad_kg'),
-            'total_pesos'   => $ventas->sum('total'),
-            'por_producto'  => $ventas->groupBy('producto.nombre')->map(fn ($v) => [
-                'cantidad_kg'  => $v->sum('cantidad_kg'),
-                'total_pesos'  => $v->sum('total'),
-            ]),
-        ];
+        $byProduct = $sales->groupBy('product_id')->map(function ($group) {
+            $first = $group->first();
+            return [
+                'product'     => $first->product?->name,
+                'quantity_kg' => $group->sum('quantity_kg'),
+                'total'       => $group->sum('total'),
+            ];
+        })->values();
 
-        return response()->json(['data' => ['ventas' => $ventas, 'resumen' => $resumen]]);
-    }
-
-    public function compras(Request $request): JsonResponse
-    {
-        $request->validate([
-            'desde' => 'required|date',
-            'hasta' => 'required|date|after_or_equal:desde',
+        return response()->json([
+            'data' => [
+                'byProduct'    => $byProduct,
+                'totalRevenue' => $sales->sum('total'),
+                'totalKg'      => $sales->sum('quantity_kg'),
+            ],
         ]);
-
-        $compras = Compra::with(['producto', 'proveedor'])
-            ->whereBetween('fecha', [$request->desde, $request->hasta])
-            ->orderByDesc('fecha')
-            ->get();
-
-        $resumen = [
-            'total_compras' => $compras->count(),
-            'total_kg'      => $compras->sum('cantidad_kg'),
-            'total_pesos'   => $compras->sum('total'),
-        ];
-
-        return response()->json(['data' => ['compras' => $compras, 'resumen' => $resumen]]);
-    }
-
-    public function inventario(): JsonResponse
-    {
-        $inventario = Inventario::with('producto')
-            ->orderBy('cantidad_kg', 'desc')
-            ->get();
-
-        return response()->json(['data' => $inventario]);
-    }
-
-    public function movimientos(Request $request): JsonResponse
-    {
-        $request->validate([
-            'desde'       => 'required|date',
-            'hasta'       => 'required|date|after_or_equal:desde',
-            'producto_id' => 'nullable|exists:productos,id',
-        ]);
-
-        $movimientos = MovimientoInventario::with('producto')
-            ->whereBetween('fecha', [$request->desde, $request->hasta])
-            ->when($request->producto_id, fn ($q) => $q->where('producto_id', $request->producto_id))
-            ->orderByDesc('fecha')
-            ->get();
-
-        return response()->json(['data' => $movimientos]);
     }
 }

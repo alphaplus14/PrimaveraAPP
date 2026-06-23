@@ -13,7 +13,7 @@ return new class extends Migration
             $table->date('date');
             $table->string('task_type');
             $table->string('crop')->nullable();
-            $table->string('assigned_to')->nullable();
+            $table->string('responsible')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
         });

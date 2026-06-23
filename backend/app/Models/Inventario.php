@@ -7,21 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Inventario extends Model
 {
-    protected $table = 'inventarios';
+    protected $table = 'inventories';
 
     protected $fillable = [
-        'producto_id',
-        'cantidad_kg',
-        'fecha_actualizacion',
+        'product_id',
+        'quantity_kg',
+        'stock_updated_at',
     ];
 
     protected $casts = [
-        'cantidad_kg'          => 'decimal:3',
-        'fecha_actualizacion'  => 'datetime',
+        'quantity_kg'      => 'decimal:3',
+        'stock_updated_at' => 'datetime',
     ];
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'producto_id');
+        return $this->belongsTo(Producto::class, 'product_id');
     }
 }

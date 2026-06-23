@@ -7,23 +7,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Insumo extends Model
 {
-    protected $table = 'insumos';
+    protected $table = 'supplies';
 
     protected $fillable = [
-        'nombre',
-        'tipo',
-        'unidad_medida',
-        'stock_actual',
-        'activo',
+        'name',
+        'type',
+        'unit',
+        'current_stock',
+        'active',
     ];
 
     protected $casts = [
-        'stock_actual' => 'decimal:3',
-        'activo'       => 'boolean',
+        'current_stock' => 'decimal:3',
+        'active'        => 'boolean',
     ];
 
-    public function laborInsumos(): HasMany
+    public function farmTaskSupplies(): HasMany
     {
-        return $this->hasMany(LaborInsumo::class, 'insumo_id');
+        return $this->hasMany(LaborInsumo::class, 'supply_id');
     }
 }

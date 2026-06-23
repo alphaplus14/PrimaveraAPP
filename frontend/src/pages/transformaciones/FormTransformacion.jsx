@@ -14,19 +14,19 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
   const [error, setError] = useState(null)
 
   const [form, setForm] = useState({
-    fecha:              hoy(),
-    producto_origen_id: '',
-    cantidad_fruta_kg:  '',
-    producto_pulpa_id:  '',
-    cantidad_pulpa_kg:  '',
-    observaciones:      '',
+    date:               hoy(),
+    source_product_id:  '',
+    fruit_quantity_kg:  '',
+    pulp_product_id:    '',
+    pulp_quantity_kg:   '',
+    notes:              '',
   })
 
   useEffect(() => {
     Promise.all([getProductos(), getInventario()]).then(([p, inv]) => {
       const todos = p.data.data
-      setFrutas(todos.filter((x) => x.activo && x.es_fruta_para_pulpa))
-      setPulpas(todos.filter((x) => x.activo && x.categoria === 'pulpa'))
+      setFrutas(todos.filter((x) => x.active && x.is_pulp_fruit))
+      setPulpas(todos.filter((x) => x.active && x.category === 'pulp'))
       setInventario(inv.data.data)
     })
   }, [])
@@ -34,30 +34,30 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }))
 
   const stockFruta = (() => {
-    if (!form.producto_origen_id) return null
-    const inv = inventario.find((i) => i.producto_id === Number(form.producto_origen_id))
-    return inv ? Number(inv.cantidad_kg) : 0
+    if (!form.source_product_id) return null
+    const inv = inventario.find((i) => i.product_id === Number(form.source_product_id))
+    return inv ? Number(inv.quantity_kg) : 0
   })()
 
   const stockInsuficiente =
     stockFruta !== null &&
-    form.cantidad_fruta_kg &&
-    Number(form.cantidad_fruta_kg) > stockFruta
+    form.fruit_quantity_kg &&
+    Number(form.fruit_quantity_kg) > stockFruta
 
   const rendimiento =
-    form.cantidad_fruta_kg && form.cantidad_pulpa_kg && Number(form.cantidad_fruta_kg) > 0
-      ? ((Number(form.cantidad_pulpa_kg) / Number(form.cantidad_fruta_kg)) * 100).toFixed(1)
+    form.fruit_quantity_kg && form.pulp_quantity_kg && Number(form.fruit_quantity_kg) > 0
+      ? ((Number(form.pulp_quantity_kg) / Number(form.fruit_quantity_kg)) * 100).toFixed(1)
       : null
 
   const handleSubmit = async () => {
     setError(null)
-    if (!form.producto_origen_id) { setError('Selecciona la fruta de origen.'); return }
-    if (!form.cantidad_fruta_kg || Number(form.cantidad_fruta_kg) <= 0) {
+    if (!form.source_product_id) { setError('Selecciona la fruta de origen.'); return }
+    if (!form.fruit_quantity_kg || Number(form.fruit_quantity_kg) <= 0) {
       setError('Ingresa la cantidad de fruta usada.')
       return
     }
-    if (!form.producto_pulpa_id) { setError('Selecciona el producto pulpa resultante.'); return }
-    if (!form.cantidad_pulpa_kg || Number(form.cantidad_pulpa_kg) <= 0) {
+    if (!form.pulp_product_id) { setError('Selecciona el producto pulpa resultante.'); return }
+    if (!form.pulp_quantity_kg || Number(form.pulp_quantity_kg) <= 0) {
       setError('Ingresa la cantidad de pulpa obtenida.')
       return
     }
@@ -79,8 +79,8 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
         <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
         <input
           type="date"
-          value={form.fecha}
-          onChange={(e) => set('fecha', e.target.value)}
+          value={form.date}
+          onChange={(e) => set('date', e.target.value)}
           className={inputClass}
         />
       </div>
@@ -96,15 +96,15 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
             </p>
           ) : (
             <SelectBuscable
-              opciones={frutas.map((f) => ({ value: f.id, label: f.nombre }))}
-              value={form.producto_origen_id}
-              onChange={(v) => set('producto_origen_id', v)}
+              opciones={frutas.map((f) => ({ value: f.id, label: f.name }))}
+              value={form.source_product_id}
+              onChange={(v) => set('source_product_id', v)}
               placeholder="Seleccionar fruta..."
             />
           )}
         </div>
 
-        {form.producto_origen_id && stockFruta !== null && (
+        {form.source_product_id && stockFruta !== null && (
           <p className={`text-xs font-medium ${stockFruta === 0 ? 'text-red-600' : 'text-green-700'}`}>
             Stock disponible: {stockFruta.toLocaleString('es-CO', { maximumFractionDigits: 1 })} kg
           </p>
@@ -117,8 +117,8 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
             min="0.001"
             step="0.1"
             placeholder="0.0"
-            value={form.cantidad_fruta_kg}
-            onChange={(e) => set('cantidad_fruta_kg', e.target.value)}
+            value={form.fruit_quantity_kg}
+            onChange={(e) => set('fruit_quantity_kg', e.target.value)}
             className={`${inputClass} ${stockInsuficiente ? 'border-amber-400 focus:ring-amber-400' : ''}`}
           />
           {stockInsuficiente && (
@@ -140,9 +140,9 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
             </p>
           ) : (
             <SelectBuscable
-              opciones={pulpas.map((p) => ({ value: p.id, label: p.nombre }))}
-              value={form.producto_pulpa_id}
-              onChange={(v) => set('producto_pulpa_id', v)}
+              opciones={pulpas.map((p) => ({ value: p.id, label: p.name }))}
+              value={form.pulp_product_id}
+              onChange={(v) => set('pulp_product_id', v)}
               placeholder="Seleccionar pulpa..."
             />
           )}
@@ -155,8 +155,8 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
             min="0.001"
             step="0.1"
             placeholder="0.0"
-            value={form.cantidad_pulpa_kg}
-            onChange={(e) => set('cantidad_pulpa_kg', e.target.value)}
+            value={form.pulp_quantity_kg}
+            onChange={(e) => set('pulp_quantity_kg', e.target.value)}
             className={inputClass}
           />
         </div>
@@ -174,8 +174,8 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
         <input
           type="text"
           placeholder="Ej: Fruta en buen estado, pulpa fina..."
-          value={form.observaciones}
-          onChange={(e) => set('observaciones', e.target.value)}
+          value={form.notes}
+          onChange={(e) => set('notes', e.target.value)}
           className={inputClass}
         />
       </div>

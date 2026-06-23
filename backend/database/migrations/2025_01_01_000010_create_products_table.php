@@ -12,9 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->enum('category', ['own', 'purchased', 'pulp']);
-            $table->string('unit_of_measure')->default('kg');
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_fruit_for_pulp')->default(false);
+            $table->string('unit')->default('kg');
+            $table->boolean('active')->default(true);
+            $table->boolean('is_pulp_fruit')->default(false);
             $table->foreignId('related_pulp_id')->nullable()->constrained('products')->nullOnDelete();
             $table->timestamps();
         });
