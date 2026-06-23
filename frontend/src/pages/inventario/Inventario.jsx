@@ -2,12 +2,22 @@ import { useState, useEffect } from 'react'
 import { getInventario, ajustarInventario } from '../../api/inventario'
 import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
+import Buscador from '../../components/ui/Buscador'
+import Paginacion from '../../components/ui/Paginacion'
 
 const POR_PAGINA = 15
 
+function formatStock(producto, quantityKg, { corto = false } = {}) {
+  const qty = Number(quantityKg)
+  if (producto?.category === 'pulp') {
+    return corto ? `${Math.round(qty)} paq` : `${Math.round(qty)} paquetes`
+  }
+  return `${qty.toFixed(1)} kg`
+}
+
 export default function Inventario() {
   const { data: items, cargando, recargar } = useApi(getInventario)
-  const [ajuste, setAjuste] = useState(null) // item seleccionado para ajustar
+  const [ajuste, setAjuste] = useState(null)
   const [form, setForm] = useState({ quantity_kg: '', reason: '' })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
@@ -16,7 +26,7 @@ export default function Inventario() {
 
   const todos = items?.data ?? items ?? []
   const lista = todos.filter((i) =>
-    i.producto?.name?.toLowerCase().includes(busqueda.toLowerCase())
+    i.producto?.name?.toLowerCase().includes(busqueda.toLowerCase()),
   )
 
   const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
@@ -54,9 +64,12 @@ export default function Inventario() {
     }
   }
 
-  const stockNuevo = ajuste && form.quantity_kg
-    ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
-    : null
+  const stockNuevo =
+    ajuste && form.quantity_kg
+      ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
+      : null
+
+  const esPulpa = ajuste?.producto?.category === 'pulp'
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
@@ -65,13 +78,11 @@ export default function Inventario() {
         <span className="text-xs text-gray-400">{lista.length} productos</span>
       </div>
 
-      {/* Buscador */}
-      <input
-        type="text"
-        placeholder="Buscar producto..."
+      <Buscador
         value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#f56523] focus:border-transparent"
+        onChange={setBusqueda}
+        placeholder="Buscar producto..."
+        className="mb-4"
       />
 
       {cargando ? (
@@ -93,25 +104,27 @@ export default function Inventario() {
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-3">Producto</th>
-                  <th className="text-right px-4 py-3">Stock (kg)</th>
+                  <th className="text-right px-4 py-3">Stock</th>
                   <th className="text-right px-4 py-3 hidden md:table-cell">Actualizado</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginaItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {item.producto?.name}
                     </td>
-                    <td className={`px-4 py-3 text-right font-semibold tabular-nums ${
-                      Number(item.quantity_kg) === 0
-                        ? 'text-red-400'
-                        : Number(item.quantity_kg) < 5
-                        ? 'text-amber-500'
-                        : 'text-gray-800'
-                    }`}>
-                      {Number(item.quantity_kg).toFixed(1)}
+                    <td
+                      className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                        Number(item.quantity_kg) === 0
+                          ? 'text-red-400'
+                          : Number(item.quantity_kg) < 5
+                            ? 'text-amber-500'
+                            : 'text-gray-800'
+                      }`}
+                    >
+                      {formatStock(item.producto, item.quantity_kg, { corto: true })}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
                       {item.quantity_updated_at
@@ -141,30 +154,30 @@ export default function Inventario() {
             porPagina={POR_PAGINA}
             inicio={inicio}
             filtrado={!!busqueda}
+            sustantivo="producto"
             onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
             onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
           />
         </>
       )}
 
-      {/* Modal de ajuste */}
       {ajuste && (
         <Modal titulo={`Ajustar — ${ajuste.producto?.name}`} onClose={() => setAjuste(null)}>
           <div className="space-y-4">
-            {/* Stock actual */}
             <div className="bg-gray-50 rounded-lg px-4 py-3 flex justify-between items-center">
               <span className="text-sm text-gray-500">Stock actual</span>
-              <span className="font-bold text-gray-800">{Number(ajuste.quantity_kg).toFixed(1)} kg</span>
+              <span className="font-bold text-gray-800">
+                {formatStock(ajuste.producto, ajuste.quantity_kg)}
+              </span>
             </div>
 
-            {/* Cantidad */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad a sumar o restar (kg) *
+                Cantidad a sumar o restar ({esPulpa ? 'paquetes' : 'kg'}) *
               </label>
               <input
                 type="number"
-                step="0.1"
+                step={esPulpa ? '1' : '0.1'}
                 placeholder="Ej: 50 para sumar, -5 para restar"
                 value={form.quantity_kg}
                 onChange={(e) => setForm((f) => ({ ...f, quantity_kg: e.target.value }))}
@@ -176,23 +189,25 @@ export default function Inventario() {
               </p>
             </div>
 
-            {/* Vista previa del nuevo stock */}
             {stockNuevo !== null && (
-              <div className={`rounded-lg px-4 py-3 flex justify-between items-center ${
-                stockNuevo < 0 ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
-              }`}>
+              <div
+                className={`rounded-lg px-4 py-3 flex justify-between items-center ${
+                  stockNuevo < 0
+                    ? 'bg-red-50 border border-red-200'
+                    : 'bg-green-50 border border-green-200'
+                }`}
+              >
                 <span className="text-sm font-medium text-gray-600">Stock resultante</span>
-                <span className={`font-bold text-lg ${stockNuevo < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                  {stockNuevo.toFixed(1)} kg
+                <span
+                  className={`font-bold text-lg ${stockNuevo < 0 ? 'text-red-600' : 'text-green-700'}`}
+                >
+                  {formatStock(ajuste.producto, stockNuevo)}
                 </span>
               </div>
             )}
 
-            {/* Motivo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Motivo *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
               <input
                 type="text"
                 placeholder="Ej: Stock inicial, merma, cosecha..."
@@ -210,12 +225,14 @@ export default function Inventario() {
 
             <div className="flex gap-3 pt-1">
               <button
+                type="button"
                 onClick={() => setAjuste(null)}
                 className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleGuardar}
                 disabled={guardando}
                 className="flex-1 bg-[#1a365d] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-60"
@@ -225,55 +242,6 @@ export default function Inventario() {
             </div>
           </div>
         </Modal>
-      )}
-    </div>
-  )
-}
-
-function Paginacion({
-  pagina,
-  totalPaginas,
-  total,
-  totalGeneral,
-  porPagina,
-  inicio,
-  filtrado,
-  onAnterior,
-  onSiguiente,
-}) {
-  const fin = Math.min(inicio + porPagina, total)
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
-      <p className="text-xs text-gray-400 text-center sm:text-left">
-        {totalPaginas > 1
-          ? `Mostrando ${inicio + 1}–${fin} de ${total} producto${total !== 1 ? 's' : ''}`
-          : `${total} producto${total !== 1 ? 's' : ''}`}
-        {filtrado ? ` (filtrado de ${totalGeneral})` : ''}
-      </p>
-
-      {totalPaginas > 1 && (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={pagina <= 1}
-            onClick={onAnterior}
-            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
-          >
-            Anterior
-          </button>
-          <span className="text-xs text-gray-500 min-w-28 text-center">
-            Página {pagina} de {totalPaginas}
-          </span>
-          <button
-            type="button"
-            disabled={pagina >= totalPaginas}
-            onClick={onSiguiente}
-            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
-          >
-            Siguiente
-          </button>
-        </div>
       )}
     </div>
   )
