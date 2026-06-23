@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [ventasSemanal, setVentasSemanal] = useState([])
   const [cargando, setCargando] = useState(true)
   const [cargandoGrafico, setCargandoGrafico] = useState(true)
+  const [error, setError] = useState(null)
   const [modalStock, setModalStock] = useState(false)
   const [detalleStock, setDetalleStock] = useState(null)
   const [detalleVenta, setDetalleVenta] = useState(null)
@@ -55,6 +56,7 @@ export default function Dashboard() {
           ventasHoyLista: [...ventas].sort((a, b) => b.id - a.id),
         })
       })
+      .catch(() => setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.'))
       .finally(() => setCargando(false))
 
     getVentasUltimasSemanas(8)
@@ -86,7 +88,11 @@ export default function Dashboard() {
             <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : (
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-red-600 text-sm">
+          {error}
+        </div>
+      ) : datos ? (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <TarjetaStat
@@ -181,7 +187,7 @@ export default function Dashboard() {
             </div>
           </div>
         </>
-      )}
+      ) : null}
 
       {modalStock && datos && (
         <ModalPaginado
