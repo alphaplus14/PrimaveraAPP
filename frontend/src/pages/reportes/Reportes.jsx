@@ -7,18 +7,10 @@ import {
 } from '../../api/reportes'
 import { getProductos } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
+import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-
-const TIPO_VENTA_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
-
-const TIPO_MOV = {
-  purchase:       { label: 'Compra',         color: 'text-blue-600',   bg: 'bg-blue-50'   },
-  sale:           { label: 'Venta',           color: 'text-green-600',  bg: 'bg-green-50'  },
-  transformation: { label: 'Transformación',  color: 'text-orange-600', bg: 'bg-orange-50' },
-  adjustment:     { label: 'Ajuste',          color: 'text-purple-600', bg: 'bg-purple-50' },
-}
 
 const TABS = [
   { id: 'ventas',      label: 'Ventas',      icon: '💰' },
@@ -46,7 +38,7 @@ export default function Reportes() {
     if (tab === 'ventas')      return getReporteVentas(rango)
     if (tab === 'compras')     return getReporteCompras(rango)
     if (tab === 'movimientos') return getReporteMovimientos({ ...rango, product_id: productoFiltro || undefined })
-    return Promise.resolve({ data: { data: [] } })
+    return Promise.resolve({ data: { data: null } })
   }, [tab, rango, productoFiltro])
 
   const { data: resultado, cargando, recargar } = useApi(fetchDatos, [tab, rango, productoFiltro])
@@ -61,18 +53,22 @@ export default function Reportes() {
     setRango((r) => ({ ...r, [campo]: valor }))
   }
 
-  // resultado is the unwrapped array from useApi (res.data.data)
-  const datos = resultado ?? []
+  // useApi unwraps res.data?.data — resultado is the array directly
+  const datosVentas      = tab === 'ventas'      ? (resultado ?? []) : []
+  const datosCompras     = tab === 'compras'     ? (resultado ?? []) : []
+  const datosMovimientos = tab === 'movimientos' ? (resultado ?? []) : []
 
-  // Compute summaries from data
-  const totalKg    = datos.reduce((s, r) => s + Number(r.quantity_kg ?? 0), 0)
-  const totalPesos = datos.reduce((s, r) => s + Number(r.total ?? 0), 0)
+  // Compute summaries inline
+  const totalVentasKg    = datosVentas.reduce((s, v) => s + Number(v.quantity_kg), 0)
+  const totalVentasPesos = datosVentas.reduce((s, v) => s + Number(v.total), 0)
+  const totalComprasKg   = datosCompras.reduce((s, v) => s + Number(v.quantity_kg), 0)
+  const totalComprasPesos = datosCompras.reduce((s, v) => s + Number(v.total), 0)
 
-  const porProducto = datos.reduce((acc, r) => {
-    const nombre = r.product?.name ?? '—'
-    if (!acc[nombre]) acc[nombre] = { quantity_kg: 0, total: 0 }
-    acc[nombre].quantity_kg += Number(r.quantity_kg ?? 0)
-    acc[nombre].total       += Number(r.total ?? 0)
+  const ventasPorProducto = datosVentas.reduce((acc, v) => {
+    const nombre = v.product?.name ?? 'Desconocido'
+    if (!acc[nombre]) acc[nombre] = { quantity_kg: 0, total_pesos: 0 }
+    acc[nombre].quantity_kg += Number(v.quantity_kg)
+    acc[nombre].total_pesos += Number(v.total)
     return acc
   }, {})
 
@@ -98,7 +94,7 @@ export default function Reportes() {
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Filtros de fecha */}
       <div className="bg-white rounded-xl shadow-sm p-4 mb-4 space-y-3">
         <div className="flex gap-2 flex-wrap">
           {PRESETS.map((p) => (
@@ -152,6 +148,7 @@ export default function Reportes() {
         )}
       </div>
 
+      {/* Contenido */}
       {cargando ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
@@ -165,20 +162,22 @@ export default function Reportes() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold text-[#1a365d]">{datos.length}</p>
+                  <p className="text-2xl font-bold text-[#1a365d]">{datosVentas.length}</p>
                   <p className="text-xs text-gray-400 mt-1">Ventas</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold text-[#1a365d]">{totalKg.toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-[#1a365d]">{totalVentasKg.toFixed(1)}</p>
                   <p className="text-xs text-gray-400 mt-1">kg vendidos</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-lg font-bold text-green-600 leading-tight">{formatCOP(totalPesos)}</p>
+                  <p className="text-lg font-bold text-green-600 leading-tight">
+                    {formatCOP(totalVentasPesos)}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">Total</p>
                 </div>
               </div>
 
-              {Object.keys(porProducto).length > 0 && (
+              {Object.keys(ventasPorProducto).length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Por producto
@@ -192,8 +191,8 @@ export default function Reportes() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {Object.entries(porProducto)
-                        .sort(([, a], [, b]) => b.total - a.total)
+                      {Object.entries(ventasPorProducto)
+                        .sort(([, a], [, b]) => b.total_pesos - a.total_pesos)
                         .map(([nombre, vals]) => (
                           <tr key={nombre} className="hover:bg-gray-50">
                             <td className="px-4 py-2.5 font-medium text-gray-800">{nombre}</td>
@@ -201,7 +200,7 @@ export default function Reportes() {
                               {Number(vals.quantity_kg).toFixed(1)}
                             </td>
                             <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-green-700">
-                              {formatCOP(vals.total)}
+                              {formatCOP(vals.total_pesos)}
                             </td>
                           </tr>
                         ))}
@@ -210,18 +209,18 @@ export default function Reportes() {
                 </div>
               )}
 
-              {datos.length > 0 ? (
+              {datosVentas.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Detalle ({datos.length})
+                    Detalle ({datosVentas.length})
                   </p>
                   <div className="divide-y divide-gray-50">
-                    {datos.map((v) => (
+                    {datosVentas.map((v) => (
                       <div key={v.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{v.product?.name}</p>
                           <p className="text-xs text-gray-400">
-                            {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg · {TIPO_VENTA_LABEL[v.sale_type] ?? v.sale_type}
+                            {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg · {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
                           </p>
                         </div>
                         <div className="text-right">
@@ -243,26 +242,28 @@ export default function Reportes() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold text-[#1a365d]">{datos.length}</p>
+                  <p className="text-2xl font-bold text-[#1a365d]">{datosCompras.length}</p>
                   <p className="text-xs text-gray-400 mt-1">Compras</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-2xl font-bold text-[#1a365d]">{totalKg.toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-[#1a365d]">{totalComprasKg.toFixed(1)}</p>
                   <p className="text-xs text-gray-400 mt-1">kg comprados</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-                  <p className="text-lg font-bold text-blue-600 leading-tight">{formatCOP(totalPesos)}</p>
+                  <p className="text-lg font-bold text-blue-600 leading-tight">
+                    {formatCOP(totalComprasPesos)}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">Total</p>
                 </div>
               </div>
 
-              {datos.length > 0 ? (
+              {datosCompras.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Detalle ({datos.length})
+                    Detalle ({datosCompras.length})
                   </p>
                   <div className="divide-y divide-gray-50">
-                    {datos.map((c) => (
+                    {datosCompras.map((c) => (
                       <div key={c.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{c.product?.name}</p>
@@ -287,14 +288,14 @@ export default function Reportes() {
           {/* ── TAB MOVIMIENTOS ── */}
           {tab === 'movimientos' && (
             <div className="space-y-3">
-              {datos.length > 0 ? (
+              {datosMovimientos.length > 0 ? (
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    {datos.length} movimiento{datos.length !== 1 ? 's' : ''}
+                    {datosMovimientos.length} movimiento{datosMovimientos.length !== 1 ? 's' : ''}
                   </p>
                   <div className="divide-y divide-gray-50">
-                    {datos.map((m) => {
-                      const tipo    = TIPO_MOV[m.type] ?? { label: m.type, color: 'text-gray-600', bg: 'bg-gray-50' }
+                    {datosMovimientos.map((m) => {
+                      const tipo = MOVEMENT_TYPE_LABEL[m.type] ?? { label: m.type, color: 'text-gray-600', bg: 'bg-gray-50' }
                       const positivo = Number(m.quantity_kg) >= 0
                       return (
                         <div key={m.id} className="px-4 py-3 flex items-center justify-between">

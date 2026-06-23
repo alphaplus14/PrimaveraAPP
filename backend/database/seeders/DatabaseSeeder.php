@@ -10,9 +10,6 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         User::firstOrCreate(
@@ -28,6 +25,7 @@ class DatabaseSeeder extends Seeder
             ProductoSeeder::class,
             PrecioSeeder::class,
             ClienteSeeder::class,
+            DashboardDemoSeeder::class,
         ]);
     }
 }

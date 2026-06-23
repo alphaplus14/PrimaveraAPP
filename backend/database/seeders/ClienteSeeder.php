@@ -24,7 +24,3 @@ class ClienteSeeder extends Seeder
                     'phone'  => $customer['phone'],
                     'active' => true,
                 ]
-            );
-        }
-    }
-}
