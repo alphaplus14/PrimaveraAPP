@@ -34,7 +34,7 @@ export default function Reportes() {
 
   // Cargamos los productos para el filtro de movimientos
   const { data: dataProductos } = useApi(getProductos)
-  const productos = dataProductos?.data ?? []
+  const productos = dataProductos?.data ?? dataProductos ?? []
 
   // Función de fetch que depende del tab y los filtros actuales
   const fetchDatos = useCallback(() => {
@@ -56,12 +56,12 @@ export default function Reportes() {
     setRango((r) => ({ ...r, [campo]: valor }))
   }
 
-  // Extraer datos según el tab
-  const datosVentas      = resultado?.data?.ventas ?? []
-  const resumenVentas    = resultado?.data?.resumen ?? {}
-  const datosCompras     = resultado?.data?.compras ?? []
-  const resumenCompras   = resultado?.data?.resumen ?? {}
-  const datosMovimientos = resultado?.data ?? []
+  // useApi ya desenvuelve res.data.data; soportar ambos formatos
+  const datosVentas      = resultado?.ventas ?? resultado?.data?.ventas ?? []
+  const resumenVentas    = resultado?.resumen ?? resultado?.data?.resumen ?? {}
+  const datosCompras     = resultado?.compras ?? resultado?.data?.compras ?? []
+  const resumenCompras   = resultado?.resumen ?? resultado?.data?.resumen ?? {}
+  const datosMovimientos = Array.isArray(resultado) ? resultado : (resultado?.data ?? [])
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">

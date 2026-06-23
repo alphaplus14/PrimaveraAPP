@@ -6,6 +6,8 @@ import FormProducto from './FormProducto'
 
 import { CATEGORY_LABEL, CATEGORY_BADGE } from '../../constants/enums'
 
+const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
+
 const FILTROS = ['todos', 'own', 'purchased', 'pulp']
 
 export default function Productos() {
@@ -15,7 +17,7 @@ export default function Productos() {
   const [productoEditar, setProductoEditar] = useState(null)
 
   const { data, cargando, recargar } = useApi(getProductos)
-  const todos = data?.data ?? []
+  const todos = data?.data ?? data ?? []
 
   const lista = todos.filter((p) => {
     const coincideCategoria = filtro === 'todos' || p.category === filtro
@@ -117,27 +119,39 @@ export default function Productos() {
           {/* Móvil: tarjetas */}
           <div className="md:hidden space-y-2">
             {lista.map((p) => (
-              <button
+              <div
                 key={p.id}
-                type="button"
-                onClick={() => handleEditar(p)}
-                className="w-full bg-white rounded-xl shadow-sm p-4 text-left hover:shadow-md transition-shadow"
+                className="flex items-center gap-3 w-full bg-white rounded-xl border border-gray-200 p-3 shadow-sm"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${CATEGORY_BADGE[p.category]}`}>
-                      {CATEGORY_LABEL[p.category]}
+                <button
+                  type="button"
+                  onClick={() => handleEditar(p)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium shrink-0 border ${CATEGORY_BADGE[p.category]}`}>
+                        {CATEGORY_LABEL[p.category]}
+                      </span>
+                      <span className="font-medium text-gray-900 truncate">{p.name}</span>
+                      {!p.is_active && (
+                        <span className="text-xs text-gray-400 shrink-0">(inactivo)</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-gray-600 tabular-nums shrink-0">
+                      {p.inventario ? `${Number(p.inventario.quantity_kg).toFixed(1)} kg` : '—'}
                     </span>
-                    <span className="font-medium text-gray-800 truncate">{p.name}</span>
-                    {!p.is_active && (
-                      <span className="text-xs text-gray-400 shrink-0">(inactivo)</span>
-                    )}
                   </div>
-                  <span className="text-xs text-gray-400 ml-2 shrink-0">
-                    {p.inventario ? `${Number(p.inventario.quantity_kg).toFixed(1)} kg` : '—'}
-                  </span>
-                </div>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleEditar(p)}
+                  aria-label={`Editar ${p.name}`}
+                  className="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200 transition-colors"
+                >
+                  <img src={ICONO_EDITAR} alt="" className="w-5 h-5 object-contain opacity-90" />
+                </button>
+              </div>
             ))}
           </div>
 
@@ -178,10 +192,12 @@ export default function Productos() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
+                        type="button"
                         onClick={() => handleEditar(p)}
-                        className="text-xs text-[#f56523] font-medium hover:underline"
+                        aria-label={`Editar ${p.name}`}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200 transition-colors"
                       >
-                        Editar
+                        <img src={ICONO_EDITAR} alt="" className="w-4 h-4 object-contain opacity-90" />
                       </button>
                     </td>
                   </tr>

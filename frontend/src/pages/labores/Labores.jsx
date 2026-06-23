@@ -21,7 +21,7 @@ export default function Labores() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const { data, cargando, recargar } = useApi(getLabores)
 
-  const lista = data?.data ?? []
+  const lista = data?.data ?? data ?? []
 
   const handleGuardado = () => {
     setMostrarForm(false)
