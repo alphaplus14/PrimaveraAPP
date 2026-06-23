@@ -30,7 +30,6 @@ export default function Labores() {
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#1a365d]">Labores</h2>
@@ -69,20 +68,20 @@ export default function Labores() {
             {lista.map((l) => (
               <div key={l.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl mt-0.5">{icono(l.task_type)}</span>
+                  <span className="text-2xl mt-0.5">{icono(l.tipo_labor)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-gray-800">{l.task_type}</p>
-                      <span className="text-xs text-gray-400">{l.date}</span>
+                      <p className="font-semibold text-gray-800">{l.tipo_labor}</p>
+                      <span className="text-xs text-gray-400">{l.fecha}</span>
                     </div>
-                    {l.crop && (
-                      <p className="text-xs text-gray-500 mt-0.5">Cultivo: {l.crop}</p>
+                    {l.cultivo && (
+                      <p className="text-xs text-gray-500 mt-0.5">Cultivo: {l.cultivo}</p>
                     )}
-                    {l.assigned_to && (
-                      <p className="text-xs text-gray-500">Responsable: {l.assigned_to}</p>
+                    {l.responsable && (
+                      <p className="text-xs text-gray-500">Responsable: {l.responsable}</p>
                     )}
-                    {l.description && (
-                      <p className="text-xs text-gray-400 mt-1 truncate">{l.description}</p>
+                    {l.descripcion && (
+                      <p className="text-xs text-gray-400 mt-1 truncate">{l.descripcion}</p>
                     )}
                     {l.insumos?.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -91,7 +90,7 @@ export default function Labores() {
                             key={ins.id}
                             className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
                           >
-                            {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit_of_measure}
+                            {ins.nombre} · {Number(ins.pivot?.cantidad_usada ?? 0).toLocaleString('es-CO')} {ins.unidad_medida}
                           </span>
                         ))}
                       </div>
@@ -117,12 +116,12 @@ export default function Labores() {
               <tbody className="divide-y divide-gray-100">
                 {lista.map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{l.date}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{l.fecha}</td>
                     <td className="px-4 py-3 font-medium">
-                      {icono(l.task_type)} {l.task_type}
+                      {icono(l.tipo_labor)} {l.tipo_labor}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{l.crop ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{l.assigned_to ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{l.cultivo ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{l.responsable ?? '—'}</td>
                     <td className="px-4 py-3">
                       {l.insumos?.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -131,7 +130,7 @@ export default function Labores() {
                               key={ins.id}
                               className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
                             >
-                              {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit_of_measure}
+                              {ins.nombre} · {Number(ins.pivot?.cantidad_usada ?? 0).toLocaleString('es-CO')} {ins.unidad_medida}
                             </span>
                           ))}
                         </div>

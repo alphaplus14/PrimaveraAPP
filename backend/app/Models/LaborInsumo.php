@@ -7,25 +7,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LaborInsumo extends Model
 {
-    protected $table = 'farm_task_supply';
+    protected $table = 'labor_insumo';
 
     protected $fillable = [
-        'farm_task_id',
-        'supply_id',
-        'quantity_used',
+        'labor_id',
+        'insumo_id',
+        'cantidad_usada',
     ];
 
     protected $casts = [
-        'quantity_used' => 'decimal:3',
+        'cantidad_usada' => 'decimal:3',
     ];
 
     public function labor(): BelongsTo
     {
-        return $this->belongsTo(Labor::class, 'farm_task_id');
+        return $this->belongsTo(Labor::class, 'labor_id');
     }
 
     public function insumo(): BelongsTo
     {
-        return $this->belongsTo(Insumo::class, 'supply_id');
+        return $this->belongsTo(Insumo::class, 'insumo_id');
     }
 }

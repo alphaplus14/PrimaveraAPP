@@ -7,24 +7,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MovimientoInventario extends Model
 {
-    protected $table = 'inventory_movements';
+    protected $table = 'movimientos_inventario';
 
     protected $fillable = [
-        'product_id',
-        'type',
-        'quantity_kg',
-        'date',
-        'reference_id',
-        'reason',
+        'producto_id',
+        'tipo',
+        'cantidad_kg',
+        'fecha',
+        'referencia_id',
+        'motivo',
     ];
 
     protected $casts = [
-        'quantity_kg' => 'decimal:3',
-        'date' => 'date',
+        'cantidad_kg' => 'decimal:3',
+        'fecha'       => 'date',
     ];
 
     public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'product_id');
+        return $this->belongsTo(Producto::class, 'producto_id');
     }
 }

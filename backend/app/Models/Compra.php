@@ -7,32 +7,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Compra extends Model
 {
-    protected $table = 'purchases';
+    protected $table = 'compras';
 
     protected $fillable = [
-        'date',
-        'supplier_id',
-        'product_id',
-        'quantity_kg',
-        'unit_price',
+        'fecha',
+        'proveedor_id',
+        'producto_id',
+        'cantidad_kg',
+        'precio_unitario',
         'total',
-        'notes',
+        'observaciones',
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'quantity_kg' => 'decimal:3',
-        'unit_price' => 'decimal:2',
-        'total' => 'decimal:2',
+        'fecha'           => 'date',
+        'cantidad_kg'     => 'decimal:3',
+        'precio_unitario' => 'decimal:2',
+        'total'           => 'decimal:2',
     ];
 
     public function proveedor(): BelongsTo
     {
-        return $this->belongsTo(Proveedor::class, 'supplier_id');
+        return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
 
     public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class, 'product_id');
+        return $this->belongsTo(Producto::class, 'producto_id');
     }
 }

@@ -11,21 +11,23 @@ class InsumoController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(['data' => Insumo::where('is_active', true)->orderBy('name')->get()]);
+        return response()->json([
+            'data' => Insumo::where('activo', true)->orderBy('nombre')->get(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:chemical,fertilizer,other',
-            'unit_of_measure' => 'required|string|max:20',
-            'current_stock' => 'sometimes|numeric|min:0',
+            'nombre'         => 'required|string|max:255',
+            'tipo'           => 'required|in:quimico,abono,otro',
+            'unidad_medida'  => 'required|string|max:20',
+            'stock_actual'   => 'sometimes|numeric|min:0',
         ], [
-            'name.required' => 'El nombre es obligatorio.',
-            'type.required' => 'El tipo es obligatorio.',
-            'type.in' => 'El tipo debe ser: chemical, fertilizer u other.',
-            'unit_of_measure.required' => 'La unidad de medida es obligatoria.',
+            'nombre.required'        => 'El nombre es obligatorio.',
+            'tipo.required'          => 'El tipo es obligatorio.',
+            'tipo.in'                => 'El tipo debe ser: quimico, abono u otro.',
+            'unidad_medida.required' => 'La unidad de medida es obligatoria.',
         ]);
 
         return response()->json(['data' => Insumo::create($data)], 201);
@@ -39,11 +41,11 @@ class InsumoController extends Controller
     public function update(Request $request, Insumo $insumo): JsonResponse
     {
         $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'type' => 'sometimes|in:chemical,fertilizer,other',
-            'unit_of_measure' => 'sometimes|string|max:20',
-            'current_stock' => 'sometimes|numeric|min:0',
-            'is_active' => 'sometimes|boolean',
+            'nombre'        => 'sometimes|string|max:255',
+            'tipo'          => 'sometimes|in:quimico,abono,otro',
+            'unidad_medida' => 'sometimes|string|max:20',
+            'stock_actual'  => 'sometimes|numeric|min:0',
+            'activo'        => 'sometimes|boolean',
         ]);
 
         $insumo->update($data);
@@ -53,7 +55,7 @@ class InsumoController extends Controller
 
     public function destroy(Insumo $insumo): JsonResponse
     {
-        $insumo->update(['is_active' => false]);
+        $insumo->update(['activo' => false]);
 
         return response()->json(['message' => 'Insumo desactivado correctamente.']);
     }

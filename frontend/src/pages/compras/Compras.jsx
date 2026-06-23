@@ -54,12 +54,12 @@ export default function Compras() {
             {lista.map((c) => (
               <div key={c.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start mb-1">
-                  <p className="font-semibold text-gray-800">{c.producto?.name}</p>
+                  <p className="font-semibold text-gray-800">{c.producto?.nombre}</p>
                   <span className="font-bold text-blue-600 text-sm">{formatCOP(c.total)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-400">
-                  <span>{c.proveedor?.name} · {Number(c.quantity_kg).toFixed(1)} kg</span>
-                  <span>{c.date}</span>
+                  <span>{c.proveedor?.nombre} · {Number(c.cantidad_kg).toFixed(1)} kg</span>
+                  <span>{c.fecha}</span>
                 </div>
               </div>
             ))}
@@ -81,11 +81,11 @@ export default function Compras() {
               <tbody className="divide-y divide-gray-100">
                 {lista.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">{c.date}</td>
-                    <td className="px-4 py-3 font-medium">{c.producto?.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{c.proveedor?.name}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{Number(c.quantity_kg).toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">{formatCOP(c.unit_price)}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.fecha}</td>
+                    <td className="px-4 py-3 font-medium">{c.producto?.nombre}</td>
+                    <td className="px-4 py-3 text-gray-600">{c.proveedor?.nombre}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{Number(c.cantidad_kg).toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">{formatCOP(c.precio_unitario)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-blue-700">{formatCOP(c.total)}</td>
                   </tr>
                 ))}

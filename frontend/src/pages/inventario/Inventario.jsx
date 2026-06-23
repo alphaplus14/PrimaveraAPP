@@ -5,32 +5,32 @@ import Modal from '../../components/ui/Modal'
 
 export default function Inventario() {
   const { data: items, cargando, recargar } = useApi(getInventario)
-  const [ajuste, setAjuste] = useState(null) // item seleccionado para ajustar
-  const [form, setForm] = useState({ quantity_kg: '', reason: '' })
+  const [ajuste, setAjuste] = useState(null)
+  const [form, setForm] = useState({ cantidad_kg: '', motivo: '' })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [busqueda, setBusqueda] = useState('')
 
   const lista = (items?.data ?? items ?? []).filter((i) =>
-    i.producto?.name?.toLowerCase().includes(busqueda.toLowerCase())
+    i.producto?.nombre?.toLowerCase().includes(busqueda.toLowerCase())
   )
 
   const abrirAjuste = (item) => {
     setAjuste(item)
-    setForm({ quantity_kg: '', reason: '' })
+    setForm({ cantidad_kg: '', motivo: '' })
     setError(null)
   }
 
   const handleGuardar = async () => {
-    if (!form.quantity_kg || !form.reason.trim()) {
+    if (!form.cantidad_kg || !form.motivo.trim()) {
       setError('Completa la cantidad y el motivo.')
       return
     }
     setGuardando(true)
     try {
-      await ajustarInventario(ajuste.product_id, {
-        quantity_kg: Number(form.quantity_kg),
-        reason: form.reason,
+      await ajustarInventario(ajuste.producto_id, {
+        cantidad_kg: Number(form.cantidad_kg),
+        motivo:      form.motivo,
       })
       setAjuste(null)
       recargar()
@@ -41,8 +41,8 @@ export default function Inventario() {
     }
   }
 
-  const stockNuevo = ajuste && form.quantity_kg
-    ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
+  const stockNuevo = ajuste && form.cantidad_kg
+    ? Number(ajuste.cantidad_kg) + Number(form.cantidad_kg)
     : null
 
   return (
@@ -52,7 +52,6 @@ export default function Inventario() {
         <span className="text-xs text-gray-400">{lista.length} productos</span>
       </div>
 
-      {/* Buscador */}
       <input
         type="text"
         placeholder="Buscar producto..."
@@ -82,20 +81,20 @@ export default function Inventario() {
               {lista.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">
-                    {item.producto?.name}
+                    {item.producto?.nombre}
                   </td>
                   <td className={`px-4 py-3 text-right font-semibold tabular-nums ${
-                    Number(item.quantity_kg) === 0
+                    Number(item.cantidad_kg) === 0
                       ? 'text-red-400'
-                      : Number(item.quantity_kg) < 5
+                      : Number(item.cantidad_kg) < 5
                       ? 'text-amber-500'
                       : 'text-gray-800'
                   }`}>
-                    {Number(item.quantity_kg).toFixed(1)}
+                    {Number(item.cantidad_kg).toFixed(1)}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
-                    {item.quantity_updated_at
-                      ? new Date(item.quantity_updated_at).toLocaleDateString('es-CO')
+                    {item.fecha_actualizacion
+                      ? new Date(item.fecha_actualizacion).toLocaleDateString('es-CO')
                       : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -113,17 +112,14 @@ export default function Inventario() {
         </div>
       )}
 
-      {/* Modal de ajuste */}
       {ajuste && (
-        <Modal titulo={`Ajustar — ${ajuste.producto?.name}`} onClose={() => setAjuste(null)}>
+        <Modal titulo={`Ajustar — ${ajuste.producto?.nombre}`} onClose={() => setAjuste(null)}>
           <div className="space-y-4">
-            {/* Stock actual */}
             <div className="bg-gray-50 rounded-lg px-4 py-3 flex justify-between items-center">
               <span className="text-sm text-gray-500">Stock actual</span>
-              <span className="font-bold text-gray-800">{Number(ajuste.quantity_kg).toFixed(1)} kg</span>
+              <span className="font-bold text-gray-800">{Number(ajuste.cantidad_kg).toFixed(1)} kg</span>
             </div>
 
-            {/* Cantidad */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Cantidad a sumar o restar (kg) *
@@ -132,8 +128,8 @@ export default function Inventario() {
                 type="number"
                 step="0.1"
                 placeholder="Ej: 50 para sumar, -5 para restar"
-                value={form.quantity_kg}
-                onChange={(e) => setForm((f) => ({ ...f, quantity_kg: e.target.value }))}
+                value={form.cantidad_kg}
+                onChange={(e) => setForm((f) => ({ ...f, cantidad_kg: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523]"
                 autoFocus
               />
@@ -142,7 +138,6 @@ export default function Inventario() {
               </p>
             </div>
 
-            {/* Vista previa del nuevo stock */}
             {stockNuevo !== null && (
               <div className={`rounded-lg px-4 py-3 flex justify-between items-center ${
                 stockNuevo < 0 ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
@@ -154,24 +149,19 @@ export default function Inventario() {
               </div>
             )}
 
-            {/* Motivo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Motivo *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
               <input
                 type="text"
                 placeholder="Ej: Stock inicial, merma, cosecha..."
-                value={form.reason}
-                onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+                value={form.motivo}
+                onChange={(e) => setForm((f) => ({ ...f, motivo: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523]"
               />
             </div>
 
             {error && (
-              <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                {error}
-              </p>
+              <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
             )}
 
             <div className="flex gap-3 pt-1">
