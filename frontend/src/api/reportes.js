@@ -16,6 +16,15 @@ export const getReporteCompras     = (params) => client.get('/reportes/compras',
 export const getReporteMovimientos = (params) => client.get('/reportes/movimientos', { params })
 export const getReporteInventario  = ()        => client.get('/reportes/inventario')
 
+export const getVentasUltimasSemanas = (semanas = 8) => {
+  const hoy = new Date()
+  const desde = new Date(hoy)
+  desde.setDate(hoy.getDate() - semanas * 7)
+  const pad = (n) => String(n).padStart(2, '0')
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  return getReporteVentas({ desde: iso(desde), hasta: iso(hoy) })
+}
+
 // Helpers de fecha
 export const formatFecha = (iso) =>
   new Date(iso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
