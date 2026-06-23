@@ -30,12 +30,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Precios (historial por producto)
     Route::get('productos/{producto}/precios', [PrecioController::class, 'index']);
     Route::post('productos/{producto}/precios', [PrecioController::class, 'store']);
-    Route::get('productos/{producto}/precio-actual', [PrecioController::class, 'actual']);
+    Route::get('productos/{producto}/precio-actual', [PrecioController::class, 'current']);
 
     // Inventario
     Route::get('inventario', [InventarioController::class, 'index']);
     Route::get('inventario/{producto}', [InventarioController::class, 'show']);
-    Route::patch('inventario/{producto}/ajuste', [InventarioController::class, 'ajuste']);
+    Route::patch('inventario/{producto}/ajuste', [InventarioController::class, 'adjust']);
 
     // Proveedores y clientes
     Route::apiResource('proveedores', ProveedorController::class);
