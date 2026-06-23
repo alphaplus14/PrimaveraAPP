@@ -78,7 +78,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 min-h-full bg-[#F8F9FA]">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} 👋</h2>
+        <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} </h2>
         <p className="text-slate-400 text-sm capitalize">{hoy}</p>
       </div>
 
