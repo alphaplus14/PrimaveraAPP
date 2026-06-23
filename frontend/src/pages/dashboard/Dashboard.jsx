@@ -29,8 +29,7 @@ export default function Dashboard() {
           comprasHoy: compras.reduce((s, c) => s + Number(c.total), 0),
           comprasKgHoy: compras.reduce((s, c) => s + Number(c.quantity_kg), 0),
           productosActivos: productos.filter((p) => p.is_active).length,
-          itemsConStock: inventario.filter((i) => Number(i.quantity_kg) > 0).length,
-          stockBajo: inventario.filter((i) => Number(i.quantity_kg) >= 0 && Number(i.quantity_kg) < 5),
+          stockBajo: inventario.filter((i) => Number(i.quantity_kg) < 5),
           ultimasVentas: ventas.slice(0, 5),
         })
       })
@@ -62,7 +61,7 @@ export default function Dashboard() {
             <TarjetaStat label="Ventas hoy" valor={formatCOP(datos.ventasHoy)} sub={formatKg(datos.ventasKgHoy) + ' vendidos'} color="green" icono="💰" />
             <TarjetaStat label="Compras hoy" valor={formatCOP(datos.comprasHoy)} sub={formatKg(datos.comprasKgHoy) + ' comprados'} color="blue" icono="🛒" />
             <TarjetaStat label="Productos" valor={datos.productosActivos} sub="activos en catálogo" color="orange" icono="🌿" />
-            <TarjetaStat label="En stock" valor={datos.itemsConStock} sub="productos con saldo" color="purple" icono="📦" />
+            <TarjetaStat label="Stock bajo" valor={datos.stockBajo.length} sub="muy bajos o por acabarse" color="amber" icono="⚠️" />
           </div>
 
           {/* Alertas de stock bajo */}
@@ -140,6 +139,7 @@ function TarjetaStat({ label, valor, sub, color, icono }) {
     blue:   'bg-blue-50 text-blue-700 border-blue-100',
     orange: 'bg-orange-50 text-orange-700 border-orange-100',
     purple: 'bg-purple-50 text-purple-700 border-purple-100',
+    amber:  'bg-amber-50 text-amber-700 border-amber-100',
   }
   return (
     <div className={`rounded-xl p-4 border ${colores[color]}`}>

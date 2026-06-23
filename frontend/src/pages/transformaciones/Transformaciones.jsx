@@ -9,7 +9,7 @@ export default function Transformaciones() {
   const { data, cargando, recargar } = useApi(getTransformaciones)
 
   // La API devuelve paginación de Laravel: { data: [...], total, ... }
-  const lista = data?.data ?? []
+  const lista = data?.data ?? data ?? []
 
   const handleGuardado = () => {
     setMostrarForm(false)
