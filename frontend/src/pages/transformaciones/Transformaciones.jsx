@@ -4,27 +4,26 @@ import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import FormTransformacion from './FormTransformacion'
 
+const formatKg = (v) =>
+  new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(v) + ' kg'
+
 export default function Transformaciones() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const { data, cargando, recargar } = useApi(getTransformaciones)
 
-  const lista = data?.data ?? []
+  const lista = data ?? []
 
   const handleGuardado = () => {
     setMostrarForm(false)
     recargar()
   }
 
-  const rendimiento = (fruta, pulpa) =>
-    fruta > 0 ? ((pulpa / fruta) * 100).toFixed(1) + '%' : '—'
-
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#1a365d]">Transformaciones</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Fruta → Pulpa</p>
+          <p className="text-xs text-gray-400 mt-0.5">Fruta convertida en pulpa</p>
         </div>
         <button
           onClick={() => setMostrarForm(true)}
@@ -42,9 +41,8 @@ export default function Transformaciones() {
         </div>
       ) : lista.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
-          <p className="text-4xl mb-3">🧃</p>
-          <p className="text-sm mb-1">No hay transformaciones registradas.</p>
-          <p className="text-xs mb-4">Convierte fruta en pulpa y el inventario se actualiza solo.</p>
+          <p className="text-4xl mb-3">🫙</p>
+          <p className="text-sm mb-4">No hay transformaciones registradas.</p>
           <button
             onClick={() => setMostrarForm(true)}
             className="text-sm text-[#f56523] font-medium hover:underline"
@@ -54,69 +52,45 @@ export default function Transformaciones() {
         </div>
       ) : (
         <>
-          {/* Móvil: tarjetas */}
+          {/* Móvil */}
           <div className="md:hidden space-y-3">
             {lista.map((t) => (
               <div key={t.id} className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🌿</span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">{t.producto_origen?.nombre}</p>
-                      <p className="text-xs text-gray-400">{Number(t.cantidad_fruta_kg).toFixed(1)} kg entrada</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-400">{t.fecha}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-400">{t.date}</span>
                 </div>
-                <div className="flex items-center gap-2 pl-8">
-                  <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <span className="text-orange-600">🧃</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{t.producto_pulpa?.nombre}</p>
-                    <p className="text-xs text-gray-400">{Number(t.cantidad_pulpa_kg).toFixed(1)} kg pulpa</p>
-                  </div>
-                  <span className="ml-auto text-xs font-bold text-[#1a365d]">
-                    {rendimiento(Number(t.cantidad_fruta_kg), Number(t.cantidad_pulpa_kg))}
-                  </span>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">{t.source_product?.name}</span>
+                  <span className="text-gray-400 text-xs">{formatKg(t.fruit_quantity_kg)}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className="font-medium text-purple-700">{t.pulp_product?.name}</span>
+                  <span className="text-gray-400 text-xs">{formatKg(t.pulp_quantity_kg)}</span>
                 </div>
+                {t.notes && <p className="text-xs text-gray-400 mt-1">{t.notes}</p>}
               </div>
             ))}
           </div>
 
-          {/* Desktop: tabla */}
+          {/* Desktop */}
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Fruta</th>
-                  <th className="text-right px-4 py-3">kg entrada</th>
-                  <th className="text-left px-4 py-3">Pulpa</th>
-                  <th className="text-right px-4 py-3">kg salida</th>
-                  <th className="text-right px-4 py-3">Rendimiento</th>
+                  <th className="text-left px-4 py-3">Fruta origen</th>
+                  <th className="text-left px-4 py-3">Cantidad fruta</th>
+                  <th className="text-left px-4 py-3">Pulpa obtenida</th>
+                  <th className="text-left px-4 py-3">Cantidad pulpa</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500">{t.fecha}</td>
-                    <td className="px-4 py-3 font-medium text-green-700">
-                      🌿 {t.producto_origen?.nombre}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {Number(t.cantidad_fruta_kg).toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-orange-600">
-                      🧃 {t.producto_pulpa?.nombre}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {Number(t.cantidad_pulpa_kg).toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-[#1a365d]">
-                      {rendimiento(Number(t.cantidad_fruta_kg), Number(t.cantidad_pulpa_kg))}
-                    </td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{t.date}</td>
+                    <td className="px-4 py-3 font-medium">{t.source_product?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatKg(t.fruit_quantity_kg)}</td>
+                    <td className="px-4 py-3 font-medium text-purple-700">{t.pulp_product?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatKg(t.pulp_quantity_kg)}</td>
                   </tr>
                 ))}
               </tbody>

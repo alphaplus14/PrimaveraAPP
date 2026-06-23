@@ -7,21 +7,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cliente extends Model
 {
-    protected $table = 'clientes';
+    protected $table = 'customers';
 
     protected $fillable = [
-        'nombre',
-        'tipo',
-        'telefono',
-        'activo',
+        'name',
+        'type',
+        'phone',
+        'active',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
+        'active' => 'boolean',
     ];
 
-    public function ventas(): HasMany
+    public function sales(): HasMany
     {
-        return $this->hasMany(Venta::class, 'cliente_id');
+        return $this->hasMany(Venta::class, 'customer_id');
     }
 }

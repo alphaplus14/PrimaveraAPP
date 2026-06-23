@@ -6,31 +6,31 @@ import Modal from '../../components/ui/Modal'
 export default function Inventario() {
   const { data: items, cargando, recargar } = useApi(getInventario)
   const [ajuste, setAjuste] = useState(null)
-  const [form, setForm] = useState({ cantidad_kg: '', motivo: '' })
+  const [form, setForm] = useState({ quantity_kg: '', reason: '' })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [busqueda, setBusqueda] = useState('')
 
   const lista = (items?.data ?? items ?? []).filter((i) =>
-    i.producto?.nombre?.toLowerCase().includes(busqueda.toLowerCase())
+    i.product?.name?.toLowerCase().includes(busqueda.toLowerCase())
   )
 
   const abrirAjuste = (item) => {
     setAjuste(item)
-    setForm({ cantidad_kg: '', motivo: '' })
+    setForm({ quantity_kg: '', reason: '' })
     setError(null)
   }
 
   const handleGuardar = async () => {
-    if (!form.cantidad_kg || !form.motivo.trim()) {
+    if (!form.quantity_kg || !form.reason.trim()) {
       setError('Completa la cantidad y el motivo.')
       return
     }
     setGuardando(true)
     try {
-      await ajustarInventario(ajuste.producto_id, {
-        cantidad_kg: Number(form.cantidad_kg),
-        motivo:      form.motivo,
+      await ajustarInventario(ajuste.product_id, {
+        quantity_kg: Number(form.quantity_kg),
+        reason:      form.reason,
       })
       setAjuste(null)
       recargar()
@@ -41,8 +41,8 @@ export default function Inventario() {
     }
   }
 
-  const stockNuevo = ajuste && form.cantidad_kg
-    ? Number(ajuste.cantidad_kg) + Number(form.cantidad_kg)
+  const stockNuevo = ajuste && form.quantity_kg
+    ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
     : null
 
   return (
@@ -81,20 +81,20 @@ export default function Inventario() {
               {lista.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">
-                    {item.producto?.nombre}
+                    {item.product?.name}
                   </td>
                   <td className={`px-4 py-3 text-right font-semibold tabular-nums ${
-                    Number(item.cantidad_kg) === 0
+                    Number(item.quantity_kg) === 0
                       ? 'text-red-400'
-                      : Number(item.cantidad_kg) < 5
+                      : Number(item.quantity_kg) < 5
                       ? 'text-amber-500'
                       : 'text-gray-800'
                   }`}>
-                    {Number(item.cantidad_kg).toFixed(1)}
+                    {Number(item.quantity_kg).toFixed(1)}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
-                    {item.fecha_actualizacion
-                      ? new Date(item.fecha_actualizacion).toLocaleDateString('es-CO')
+                    {item.stock_updated_at
+                      ? new Date(item.stock_updated_at).toLocaleDateString('es-CO')
                       : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -113,11 +113,11 @@ export default function Inventario() {
       )}
 
       {ajuste && (
-        <Modal titulo={`Ajustar — ${ajuste.producto?.nombre}`} onClose={() => setAjuste(null)}>
+        <Modal titulo={`Ajustar — ${ajuste.product?.name}`} onClose={() => setAjuste(null)}>
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-lg px-4 py-3 flex justify-between items-center">
               <span className="text-sm text-gray-500">Stock actual</span>
-              <span className="font-bold text-gray-800">{Number(ajuste.cantidad_kg).toFixed(1)} kg</span>
+              <span className="font-bold text-gray-800">{Number(ajuste.quantity_kg).toFixed(1)} kg</span>
             </div>
 
             <div>
@@ -128,8 +128,8 @@ export default function Inventario() {
                 type="number"
                 step="0.1"
                 placeholder="Ej: 50 para sumar, -5 para restar"
-                value={form.cantidad_kg}
-                onChange={(e) => setForm((f) => ({ ...f, cantidad_kg: e.target.value }))}
+                value={form.quantity_kg}
+                onChange={(e) => setForm((f) => ({ ...f, quantity_kg: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523]"
                 autoFocus
               />
@@ -154,8 +154,8 @@ export default function Inventario() {
               <input
                 type="text"
                 placeholder="Ej: Stock inicial, merma, cosecha..."
-                value={form.motivo}
-                onChange={(e) => setForm((f) => ({ ...f, motivo: e.target.value }))}
+                value={form.reason}
+                onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523]"
               />
             </div>

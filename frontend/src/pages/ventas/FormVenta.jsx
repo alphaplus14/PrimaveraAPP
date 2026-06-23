@@ -8,10 +8,10 @@ const hoy = () => new Date().toISOString().split('T')[0]
 
 const lineaVacia = () => ({
   id: Math.random(),
-  producto_id:    '',
-  tipo_venta:     'detal',
-  cantidad_kg:    '',
-  precio_unitario: '',
+  product_id: '',
+  sale_type:  'retail',
+  quantity_kg: '',
+  unit_price:  '',
 })
 
 const formatCOP = (v) =>
@@ -26,13 +26,13 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   const [advertencias, setAdvertencias] = useState({})
   const [confirmarForzar, setConfirmarForzar] = useState(false)
 
-  const [cabecera, setCabecera] = useState({ fecha: hoy(), cliente_id: '' })
+  const [cabecera, setCabecera] = useState({ date: hoy(), customer_id: '' })
   const [lineas, setLineas] = useState([lineaVacia()])
 
   useEffect(() => {
     Promise.all([getProductos(), getClientes(), getInventario()]).then(([p, c, i]) => {
-      setProductos(p.data.data.filter((x) => x.activo))
-      setClientes(c.data.data.filter((x) => x.activo))
+      setProductos(p.data.data.filter((x) => x.active))
+      setClientes(c.data.data.filter((x) => x.active))
       setInventario(i.data.data)
     })
   }, [])
@@ -40,34 +40,34 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   const actualizarLinea = async (id, campo, valor) => {
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
 
-    const linea = lineas.find((l) => l.id === id)
-    const producto_id = campo === 'producto_id' ? valor : linea.producto_id
-    const tipo_venta  = campo === 'tipo_venta'  ? valor : linea.tipo_venta
+    const linea      = lineas.find((l) => l.id === id)
+    const product_id = campo === 'product_id' ? valor : linea.product_id
+    const sale_type  = campo === 'sale_type'  ? valor : linea.sale_type
 
-    // Auto-completar precio desde el catálogo
-    if ((campo === 'producto_id' || campo === 'tipo_venta') && producto_id) {
+    // Auto-fill price from catalogue
+    if ((campo === 'product_id' || campo === 'sale_type') && product_id) {
       try {
-        const { data } = await getPrecioActual(producto_id)
-        const precio = data.data?.[tipo_venta]
+        const { data } = await getPrecioActual(product_id)
+        const precio = data.data?.[sale_type]
         setLineas((prev) =>
           prev.map((l) =>
             l.id === id
-              ? { ...l, [campo]: valor, precio_unitario: precio ? Number(precio.valor) : '' }
+              ? { ...l, [campo]: valor, unit_price: precio ? Number(precio.value) : '' }
               : l
           )
         )
       } catch {
-        // sin precio, dejar vacío
+        // no price, leave empty
       }
     }
 
-    // Verificar stock
-    if (campo === 'cantidad_kg' || campo === 'producto_id') {
-      const pid = campo === 'producto_id' ? valor : linea.producto_id
-      const kg  = campo === 'cantidad_kg'  ? valor : linea.cantidad_kg
+    // Check stock
+    if (campo === 'quantity_kg' || campo === 'product_id') {
+      const pid = campo === 'product_id' ? valor : linea.product_id
+      const kg  = campo === 'quantity_kg' ? valor : linea.quantity_kg
       if (pid && kg) {
-        const inv   = inventario.find((i) => i.producto_id === Number(pid))
-        const stock = inv ? Number(inv.cantidad_kg) : 0
+        const inv   = inventario.find((i) => i.product_id === Number(pid))
+        const stock = inv ? Number(inv.quantity_kg) : 0
         if (Number(kg) > stock) {
           setAdvertencias((prev) => ({ ...prev, [id]: stock }))
         } else {
@@ -81,15 +81,15 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   const eliminarLinea = (id) => setLineas((prev) => prev.filter((l) => l.id !== id))
 
   const totalGeneral = lineas.reduce((sum, l) =>
-    sum + (l.cantidad_kg && l.precio_unitario
-      ? Number(l.cantidad_kg) * Number(l.precio_unitario)
+    sum + (l.quantity_kg && l.unit_price
+      ? Number(l.quantity_kg) * Number(l.unit_price)
       : 0), 0)
 
-  const handleCrearCliente = async (nombre) => {
+  const handleCrearCliente = async (name) => {
     try {
-      const { data } = await crearCliente({ nombre, tipo: 'individual' })
+      const { data } = await crearCliente({ name, type: 'individual' })
       setClientes((prev) => [...prev, data.data])
-      setCabecera((c) => ({ ...c, cliente_id: String(data.data.id) }))
+      setCabecera((c) => ({ ...c, customer_id: String(data.data.id) }))
     } catch {
       setError('No se pudo crear el cliente.')
     }
@@ -97,8 +97,8 @@ export default function FormVenta({ onGuardado, onCerrar }) {
 
   const handleSubmit = async (forzar = false) => {
     setError(null)
-    if (!cabecera.cliente_id) { setError('Selecciona un cliente.'); return }
-    if (lineas.some((l) => !l.producto_id || !l.cantidad_kg || !l.precio_unitario)) {
+    if (!cabecera.customer_id) { setError('Selecciona un cliente.'); return }
+    if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
       setError('Completa todos los campos de cada línea.')
       return
     }
@@ -114,13 +114,13 @@ export default function FormVenta({ onGuardado, onCerrar }) {
       await Promise.all(
         lineas.map((l) =>
           crearVenta({
-            fecha:           cabecera.fecha,
-            cliente_id:      cabecera.cliente_id,
-            producto_id:     l.producto_id,
-            tipo_venta:      l.tipo_venta,
-            cantidad_kg:     l.cantidad_kg,
-            precio_unitario: l.precio_unitario,
-            force:           forzar,
+            date:        cabecera.date,
+            customer_id: cabecera.customer_id,
+            product_id:  l.product_id,
+            sale_type:   l.sale_type,
+            quantity_kg: l.quantity_kg,
+            unit_price:  l.unit_price,
+            force:       forzar,
           })
         )
       )
@@ -134,30 +134,28 @@ export default function FormVenta({ onGuardado, onCerrar }) {
 
   return (
     <div className="space-y-4">
-      {/* Cabecera */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
           <input
             type="date"
-            value={cabecera.fecha}
-            onChange={(e) => setCabecera((c) => ({ ...c, fecha: e.target.value }))}
+            value={cabecera.date}
+            onChange={(e) => setCabecera((c) => ({ ...c, date: e.target.value }))}
             className={inputClass}
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Cliente *</label>
           <SelectBuscable
-            opciones={clientes.map((c) => ({ value: c.id, label: c.nombre }))}
-            value={cabecera.cliente_id}
-            onChange={(v) => setCabecera((c) => ({ ...c, cliente_id: v }))}
+            opciones={clientes.map((c) => ({ value: c.id, label: c.name }))}
+            value={cabecera.customer_id}
+            onChange={(v) => setCabecera((c) => ({ ...c, customer_id: v }))}
             placeholder="Buscar cliente..."
             onCrear={handleCrearCliente}
           />
         </div>
       </div>
 
-      {/* Líneas */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Productos</label>
@@ -182,9 +180,9 @@ export default function FormVenta({ onGuardado, onCerrar }) {
             </div>
 
             <SelectBuscable
-              opciones={productos.map((p) => ({ value: p.id, label: p.nombre }))}
-              value={linea.producto_id}
-              onChange={(v) => actualizarLinea(linea.id, 'producto_id', v)}
+              opciones={productos.map((p) => ({ value: p.id, label: p.name }))}
+              value={linea.product_id}
+              onChange={(v) => actualizarLinea(linea.id, 'product_id', v)}
               placeholder="Buscar producto..."
             />
 
@@ -192,13 +190,13 @@ export default function FormVenta({ onGuardado, onCerrar }) {
               <div>
                 <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
                 <div className="flex rounded-lg overflow-hidden border border-gray-300">
-                  {[['detal', 'Det.'], ['mayorista', 'May.']].map(([v, l]) => (
+                  {[['retail', 'Det.'], ['wholesale', 'May.']].map(([v, l]) => (
                     <button
                       key={v}
                       type="button"
-                      onClick={() => actualizarLinea(linea.id, 'tipo_venta', v)}
+                      onClick={() => actualizarLinea(linea.id, 'sale_type', v)}
                       className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        v === linea.tipo_venta
+                        v === linea.sale_type
                           ? 'bg-[#1a365d] text-white'
                           : 'bg-white text-gray-500 hover:bg-gray-50'
                       }`}
@@ -216,21 +214,21 @@ export default function FormVenta({ onGuardado, onCerrar }) {
                   min="0.001"
                   step="0.1"
                   placeholder="0.0"
-                  value={linea.cantidad_kg}
-                  onChange={(e) => actualizarLinea(linea.id, 'cantidad_kg', e.target.value)}
+                  value={linea.quantity_kg}
+                  onChange={(e) => actualizarLinea(linea.id, 'quantity_kg', e.target.value)}
                   className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb-0.5 block">$/kg *</label>
+                <label className="text-xs text-gray-400 mb.0.5 block">$/kg *</label>
                 <input
                   type="number"
                   min="0"
                   step="100"
                   placeholder="0"
-                  value={linea.precio_unitario}
-                  onChange={(e) => actualizarLinea(linea.id, 'precio_unitario', e.target.value)}
+                  value={linea.unit_price}
+                  onChange={(e) => actualizarLinea(linea.id, 'unit_price', e.target.value)}
                   className={inputClass}
                 />
               </div>
@@ -242,9 +240,9 @@ export default function FormVenta({ onGuardado, onCerrar }) {
                   ⚠️ Stock: {Number(advertencias[linea.id]).toFixed(1)} kg
                 </span>
               )}
-              {linea.cantidad_kg && linea.precio_unitario && (
+              {linea.quantity_kg && linea.unit_price && (
                 <span className="text-xs font-semibold text-green-700 ml-auto">
-                  = {formatCOP(Number(linea.cantidad_kg) * Number(linea.precio_unitario))}
+                  = {formatCOP(Number(linea.quantity_kg) * Number(linea.unit_price))}
                 </span>
               )}
             </div>

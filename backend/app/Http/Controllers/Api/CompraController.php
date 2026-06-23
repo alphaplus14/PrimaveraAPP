@@ -6,75 +6,59 @@ use App\Http\Controllers\Controller;
 use App\Models\Compra;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CompraController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index()
     {
-        $compras = Compra::with(['producto', 'proveedor'])
-            ->when($request->desde, fn ($q) => $q->where('fecha', '>=', $request->desde))
-            ->when($request->hasta, fn ($q) => $q->where('fecha', '<=', $request->hasta))
-            ->orderByDesc('fecha')
-            ->paginate(50);
+        $purchases = Compra::with(['product', 'supplier'])
+            ->orderByDesc('date')
+            ->get();
 
-        return response()->json($compras);
+        return response()->json(['data' => $purchases]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $data = $request->validate([
-            'fecha'           => 'required|date',
-            'proveedor_id'    => 'required|exists:proveedores,id',
-            'producto_id'     => 'required|exists:productos,id',
-            'cantidad_kg'     => 'required|numeric|min:0.001',
-            'precio_unitario' => 'required|numeric|min:0',
-            'observaciones'   => 'nullable|string|max:1000',
-        ], [
-            'fecha.required'           => 'La fecha es obligatoria.',
-            'proveedor_id.required'    => 'El proveedor es obligatorio.',
-            'proveedor_id.exists'      => 'El proveedor no existe.',
-            'producto_id.required'     => 'El producto es obligatorio.',
-            'producto_id.exists'       => 'El producto no existe.',
-            'cantidad_kg.required'     => 'La cantidad en kg es obligatoria.',
-            'cantidad_kg.min'          => 'La cantidad debe ser mayor a cero.',
-            'precio_unitario.required' => 'El precio unitario es obligatorio.',
+            'date'        => 'required|date',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'product_id'  => 'required|exists:products,id',
+            'quantity_kg' => 'required|numeric|min:0.001',
+            'unit_price'  => 'required|numeric|min:0',
+            'notes'       => 'nullable|string',
         ]);
 
-        $data['total'] = round($data['cantidad_kg'] * $data['precio_unitario'], 2);
+        $data['total'] = $data['quantity_kg'] * $data['unit_price'];
 
-        $compra = DB::transaction(function () use ($data) {
-            $compra = Compra::create($data);
+        $purchase = DB::transaction(function () use ($data) {
+            $purchase = Compra::create($data);
 
-            $inventario = Inventario::firstOrCreate(
-                ['producto_id' => $data['producto_id']],
-                ['cantidad_kg' => 0]
-            );
-            $inventario->increment('cantidad_kg', $data['cantidad_kg']);
-            $inventario->update(['fecha_actualizacion' => now()]);
+            $inventory = Inventario::where('product_id', $data['product_id'])->first();
+            if ($inventory) {
+                $inventory->quantity_kg      += $data['quantity_kg'];
+                $inventory->stock_updated_at  = now();
+                $inventory->save();
+            }
 
             MovimientoInventario::create([
-                'producto_id'  => $data['producto_id'],
-                'tipo'         => 'compra',
-                'cantidad_kg'  => $data['cantidad_kg'],
-                'fecha'        => $data['fecha'],
-                'referencia_id' => $compra->id,
+                'product_id'   => $data['product_id'],
+                'type'         => 'purchase',
+                'quantity_kg'  => $data['quantity_kg'],
+                'date'         => $data['date'],
+                'reference_id' => $purchase->id,
             ]);
 
-            return $compra;
+            return $purchase;
         });
 
-        return response()->json([
-            'data' => $compra->load(['producto', 'proveedor']),
-        ], 201);
+        return response()->json(['data' => $purchase->load(['product', 'supplier'])], 201);
     }
 
-    public function show(Compra $compra): JsonResponse
+    public function show(Compra $compra)
     {
-        return response()->json([
-            'data' => $compra->load(['producto', 'proveedor']),
-        ]);
+        return response()->json(['data' => $compra->load(['product', 'supplier'])]);
     }
 }

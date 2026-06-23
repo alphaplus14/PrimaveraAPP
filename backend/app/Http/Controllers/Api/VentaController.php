@@ -6,89 +6,71 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index()
     {
-        $ventas = Venta::with(['producto', 'cliente'])
-            ->when($request->desde, fn ($q) => $q->where('fecha', '>=', $request->desde))
-            ->when($request->hasta, fn ($q) => $q->where('fecha', '<=', $request->hasta))
-            ->orderByDesc('fecha')
-            ->paginate(50);
+        $sales = Venta::with(['product', 'customer'])
+            ->orderByDesc('date')
+            ->get();
 
-        return response()->json($ventas);
+        return response()->json(['data' => $sales]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $data = $request->validate([
-            'fecha'           => 'required|date',
-            'cliente_id'      => 'required|exists:clientes,id',
-            'producto_id'     => 'required|exists:productos,id',
-            'cantidad_kg'     => 'required|numeric|min:0.001',
-            'tipo_venta'      => 'required|in:detal,mayorista',
-            'precio_unitario' => 'required|numeric|min:0',
-            'force'           => 'sometimes|boolean',
-        ], [
-            'fecha.required'           => 'La fecha es obligatoria.',
-            'cliente_id.required'      => 'El cliente es obligatorio.',
-            'cliente_id.exists'        => 'El cliente no existe.',
-            'producto_id.required'     => 'El producto es obligatorio.',
-            'producto_id.exists'       => 'El producto no existe.',
-            'cantidad_kg.min'          => 'La cantidad debe ser mayor a cero.',
-            'tipo_venta.required'      => 'El tipo de venta es obligatorio.',
-            'tipo_venta.in'            => 'El tipo debe ser detal o mayorista.',
-            'precio_unitario.required' => 'El precio unitario es obligatorio.',
+            'date'        => 'required|date',
+            'customer_id' => 'required|exists:customers,id',
+            'product_id'  => 'required|exists:products,id',
+            'quantity_kg' => 'required|numeric|min:0.001',
+            'sale_type'   => 'required|in:retail,wholesale',
+            'unit_price'  => 'required|numeric|min:0',
+            'force'       => 'boolean',
         ]);
 
-        $inventario = Inventario::where('producto_id', $data['producto_id'])->first();
-        $stockActual = $inventario ? (float) $inventario->cantidad_kg : 0;
-        $stockInsuficiente = $stockActual < $data['cantidad_kg'];
+        $inventory = Inventario::where('product_id', $data['product_id'])->first();
 
-        if ($stockInsuficiente && ! ($data['force'] ?? false)) {
+        if (!($data['force'] ?? false) && $inventory && $inventory->quantity_kg < $data['quantity_kg']) {
             return response()->json([
-                'message'            => 'Stock insuficiente.',
-                'advertencia'        => true,
-                'stock_actual'       => $stockActual,
-                'cantidad_solicitada' => $data['cantidad_kg'],
+                'message'          => 'Insufficient stock.',
+                'available'        => $inventory->quantity_kg,
+                'stock_warning'    => true,
             ], 422);
         }
 
-        $data['total'] = round($data['cantidad_kg'] * $data['precio_unitario'], 2);
+        $data['total']  = $data['quantity_kg'] * $data['unit_price'];
+        $data['forced'] = $data['force'] ?? false;
         unset($data['force']);
 
-        $venta = DB::transaction(function () use ($data, $inventario) {
-            $venta = Venta::create($data);
+        $sale = DB::transaction(function () use ($data, $inventory) {
+            $sale = Venta::create($data);
 
-            if ($inventario) {
-                $inventario->decrement('cantidad_kg', $data['cantidad_kg']);
-                $inventario->update(['fecha_actualizacion' => now()]);
+            if ($inventory) {
+                $inventory->quantity_kg      -= $data['quantity_kg'];
+                $inventory->stock_updated_at  = now();
+                $inventory->save();
             }
 
             MovimientoInventario::create([
-                'producto_id'  => $data['producto_id'],
-                'tipo'         => 'venta',
-                'cantidad_kg'  => -$data['cantidad_kg'],
-                'fecha'        => $data['fecha'],
-                'referencia_id' => $venta->id,
+                'product_id'   => $data['product_id'],
+                'type'         => 'sale',
+                'quantity_kg'  => -$data['quantity_kg'],
+                'date'         => $data['date'],
+                'reference_id' => $sale->id,
             ]);
 
-            return $venta;
+            return $sale;
         });
 
-        return response()->json([
-            'data' => $venta->load(['producto', 'cliente']),
-        ], 201);
+        return response()->json(['data' => $sale->load(['product', 'customer'])], 201);
     }
 
-    public function show(Venta $venta): JsonResponse
+    public function show(Venta $venta)
     {
-        return response()->json([
-            'data' => $venta->load(['producto', 'cliente']),
-        ]);
+        return response()->json(['data' => $venta->load(['product', 'customer'])]);
     }
 }
