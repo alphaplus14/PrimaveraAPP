@@ -35,4 +35,7 @@ class PrecioSeeder extends Seeder
                     'value'      => $value,
                     'valid_from' => $today,
                 ]);
-       
+            }
+        }
+    }
+}

@@ -20,9 +20,9 @@ class DashboardDemoSeeder extends Seeder
 
     public function run(): void
     {
-        $clientes = Cliente::where('is_active', true)->pluck('id')->all();
-        $productos = Producto::where('is_active', true)->get();
-        $proveedores = Proveedor::where('is_active', true)->pluck('id')->all();
+        $clientes = Cliente::where('active', true)->pluck('id')->all();
+        $productos = Producto::where('active', true)->get();
+        $proveedores = Proveedor::where('active', true)->pluck('id')->all();
 
         if ($clientes === [] || $productos->isEmpty() || $proveedores === []) {
             $this->command?->warn('Faltan clientes, productos o proveedores. Ejecuta: php artisan db:seed');
@@ -82,10 +82,10 @@ class DashboardDemoSeeder extends Seeder
 
                 $inventario = Inventario::firstOrCreate(
                     ['product_id' => $producto->id],
-                    ['quantity_kg' => 0, 'quantity_updated_at' => now()]
+                    ['quantity_kg' => 0, 'stock_updated_at' => now()]
                 );
                 $inventario->increment('quantity_kg', $kg);
-                $inventario->update(['quantity_updated_at' => now()]);
+                $inventario->update(['stock_updated_at' => now()]);
 
                 MovimientoInventario::create([
                     'product_id' => $producto->id,
@@ -135,7 +135,7 @@ class DashboardDemoSeeder extends Seeder
 
             Inventario::updateOrCreate(
                 ['product_id' => $producto->id],
-                ['quantity_kg' => $kg, 'quantity_updated_at' => now()->subDays(rand(1, 5))]
+                ['quantity_kg' => $kg, 'stock_updated_at' => now()->subDays(rand(1, 5))]
             );
         }
     }
@@ -159,7 +159,7 @@ class DashboardDemoSeeder extends Seeder
 
             Inventario::updateOrCreate(
                 ['product_id' => $producto->id],
-                ['quantity_kg' => $kg, 'quantity_updated_at' => now()]
+                ['quantity_kg' => $kg, 'stock_updated_at' => now()]
             );
         }
     }
@@ -189,7 +189,7 @@ class DashboardDemoSeeder extends Seeder
 
         if ($inventario && $stock >= $kg) {
             $inventario->decrement('quantity_kg', $kg);
-            $inventario->update(['quantity_updated_at' => $fecha]);
+            $inventario->update(['stock_updated_at' => $fecha]);
         }
 
         MovimientoInventario::create([
@@ -208,7 +208,7 @@ class DashboardDemoSeeder extends Seeder
     {
         return (float) (Precio::where('product_id', $producto->id)
             ->where('type', $tipo)
-            ->orderByDesc('effective_from')
-            ->value('amount') ?? 3000);
+            ->orderByDesc('valid_from')
+            ->value('value') ?? 3000);
     }
 }

@@ -43,4 +43,15 @@ export const rangoPreset = (preset) => {
       return { desde: iso(lunes), hasta: iso(hoy) }
     }
     case 'mes': {
-      
+      const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+      return { desde: iso(inicio), hasta: iso(hoy) }
+    }
+    case 'mes_anterior': {
+      const ini = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
+      const fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0)
+      return { desde: iso(ini), hasta: iso(fin) }
+    }
+    default:
+      return { desde: iso(hoy), hasta: iso(hoy) }
+  }
+}

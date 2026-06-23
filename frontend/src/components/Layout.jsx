@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FLUX } from '../lib/dashboard'
+import Modal from './ui/Modal'
+import TwoFactorSetup from './TwoFactorSetup'
 
 const nav = [
   { to: '/',                  label: 'Dashboard',        icon: '/assets/icons/dashboard%20icon.png' },
@@ -57,6 +59,7 @@ export default function Layout() {
   const { user, cerrarSesion } = useAuth()
   const navigate = useNavigate()
 
+  const [mostrarSeguridad, setMostrarSeguridad] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(STORAGE_SIDEBAR) === 'true',
   )
@@ -83,3 +86,129 @@ export default function Layout() {
       <aside
         className={`hidden md:flex flex-col bg-white border-r border-slate-100 text-slate-700 transition-all duration-200 relative shrink-0 ${
           sidebarCollapsed ? 'w-16' : 'w-56'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((c) => !c)}
+          aria-label={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
+          className="absolute -right-3 top-20 z-10 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+        >
+          <ChevronIcon
+            direction={sidebarCollapsed ? 'right' : 'left'}
+            className="w-3.5 h-3.5"
+          />
+        </button>
+
+        <div
+          className={`border-b border-slate-100 ${
+            sidebarCollapsed ? 'px-2 py-4 text-center' : 'px-5 py-6'
+          }`}
+        >
+          {sidebarCollapsed ? (
+            <span className="text-xl" title="Finca Primavera">
+              🌱
+            </span>
+          ) : (
+            <>
+              <h1 className="font-bold text-lg leading-tight text-slate-800">Finca Primavera</h1>
+              <p className="text-xs text-slate-400 mt-0.5 truncate">{user?.name}</p>
+            </>
+          )}
+        </div>
+
+        <nav className="flex-1 py-4 space-y-0.5 px-2 overflow-y-auto">
+          {nav.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              title={sidebarCollapsed ? label : undefined}
+              className={({ isActive }) =>
+                `flex items-center rounded-xl text-sm transition-colors ${
+                  sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5'
+                } ${
+                  isActive
+                    ? 'font-medium'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`
+              }
+              style={({ isActive }) =>
+                isActive
+                  ? { backgroundColor: FLUX.lavender, color: FLUX.purpleDark }
+                  : undefined
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <NavIcon src={icon} active={isActive} className="w-5 h-5" />
+                  {!sidebarCollapsed && <span className="truncate">{label}</span>}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        <button
+          type="button"
+          onClick={() => setMostrarSeguridad(true)}
+          title="Seguridad / 2FA"
+          className={`mx-3 mb-1 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
+            sidebarCollapsed ? 'px-2 text-center' : 'text-left px-3'
+          }`}
+        >
+          {sidebarCollapsed ? '🔐' : '🔐 Seguridad'}
+        </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          title="Cerrar sesión"
+          className={`m-3 mt-0 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
+            sidebarCollapsed ? 'px-2 text-center' : 'text-left px-3'
+          }`}
+        >
+          {sidebarCollapsed ? '⎋' : 'Cerrar sesión'}
+        </button>
+
+        {mostrarSeguridad && (
+          <Modal titulo="Seguridad de la cuenta" onClose={() => setMostrarSeguridad(false)}>
+            <TwoFactorSetup />
+          </Modal>
+        )}
+      </aside>
+
+      {/* Contenido principal */}
+      <main className="flex-1 flex flex-col min-w-0">
+        <Outlet />
+      </main>
+
+      {/* Barra de navegación inferior — solo móvil */}
+      {mobileNavOpen ? (
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-50">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Ocultar menú"
+            className="absolute -top-8 right-3 flex items-center justify-center w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            <ChevronIcon direction="down" className="w-4 h-4" />
+          </button>
+          <nav className="bg-white flex justify-around py-2.5 border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+            {nav.map(({ to, label, icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-1 px-1.5 py-1 rounded-lg text-[11px] leading-tight transition-colors min-w-0 ${
+                    isActive
+                      ? 'font-semibold'
+                      : 'text-slate-500 font-medium'
+                  }`
+                }
+                style={({ isActive }) =>
+                  isActive ? { color: FLUX.purpleDark } : undefined
+                }
+              >
+                {({ isActive }) => (
+      
