@@ -73,7 +73,7 @@ export default function Inventario() {
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-3">Producto</th>
-                <th className="text-right px-4 py-3">Stock (kg)</th>
+                <th className="text-right px-4 py-3">Stock</th>
                 <th className="text-right px-4 py-3 hidden md:table-cell">Actualizado</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -91,7 +91,9 @@ export default function Inventario() {
                       ? 'text-amber-500'
                       : 'text-gray-800'
                   }`}>
-                    {Number(item.quantity_kg).toFixed(1)}
+                    {item.producto?.category === 'pulp'
+                      ? `${Math.round(item.quantity_kg)} paq`
+                      : `${Number(item.quantity_kg).toFixed(1)} kg`}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
                     {item.quantity_updated_at
@@ -120,13 +122,17 @@ export default function Inventario() {
             {/* Stock actual */}
             <div className="bg-gray-50 rounded-lg px-4 py-3 flex justify-between items-center">
               <span className="text-sm text-gray-500">Stock actual</span>
-              <span className="font-bold text-gray-800">{Number(ajuste.quantity_kg).toFixed(1)} kg</span>
+              <span className="font-bold text-gray-800">
+              {ajuste.producto?.category === 'pulp'
+                ? `${Math.round(ajuste.quantity_kg)} paquetes`
+                : `${Number(ajuste.quantity_kg).toFixed(1)} kg`}
+            </span>
             </div>
 
             {/* Cantidad */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad a sumar o restar (kg) *
+                Cantidad a sumar o restar ({ajuste.producto?.category === 'pulp' ? 'paquetes' : 'kg'}) *
               </label>
               <input
                 type="number"
@@ -149,7 +155,9 @@ export default function Inventario() {
               }`}>
                 <span className="text-sm font-medium text-gray-600">Stock resultante</span>
                 <span className={`font-bold text-lg ${stockNuevo < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                  {stockNuevo.toFixed(1)} kg
+                  {ajuste.producto?.category === 'pulp'
+                    ? `${Math.round(stockNuevo)} paquetes`
+                    : `${stockNuevo.toFixed(1)} kg`}
                 </span>
               </div>
             )}
