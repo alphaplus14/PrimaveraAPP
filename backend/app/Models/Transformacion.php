@@ -14,6 +14,7 @@ class Transformacion extends Model
         'source_product_id',
         'fruit_quantity_kg',
         'pulp_product_id',
+        'pulp_quantity_packages',
         'pulp_quantity_kg',
         'notes',
     ];
@@ -21,6 +22,7 @@ class Transformacion extends Model
     protected $casts = [
         'date' => 'date',
         'fruit_quantity_kg' => 'decimal:3',
+        'pulp_quantity_packages' => 'integer',
         'pulp_quantity_kg' => 'decimal:3',
     ];
 

@@ -14,11 +14,13 @@ class TransformacionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $perPage = in_array((int) $request->per_page, [5, 10, 25]) ? (int) $request->per_page : 10;
+
         $transformaciones = Transformacion::with(['productoOrigen', 'productoPulpa'])
             ->when($request->desde, fn ($q) => $q->where('date', '>=', $request->desde))
             ->when($request->hasta, fn ($q) => $q->where('date', '<=', $request->hasta))
             ->orderByDesc('date')
-            ->paginate(50);
+            ->paginate($perPage);
 
         return response()->json($transformaciones);
     }
@@ -30,15 +32,19 @@ class TransformacionController extends Controller
             'source_product_id' => 'required|exists:products,id',
             'fruit_quantity_kg' => 'required|numeric|min:0.001',
             'pulp_product_id' => 'required|exists:products,id|different:source_product_id',
-            'pulp_quantity_kg' => 'required|numeric|min:0.001',
+            'pulp_quantity_packages' => 'required|integer|min:1',
             'notes' => 'nullable|string|max:1000',
         ], [
             'source_product_id.required' => 'El producto origen es obligatorio.',
             'fruit_quantity_kg.min' => 'La cantidad de fruta debe ser mayor a cero.',
             'pulp_product_id.required' => 'El producto pulpa es obligatorio.',
             'pulp_product_id.different' => 'El producto pulpa debe ser diferente al origen.',
-            'pulp_quantity_kg.min' => 'La cantidad de pulpa debe ser mayor a cero.',
+            'pulp_quantity_packages.required' => 'La cantidad de paquetes es obligatoria.',
+            'pulp_quantity_packages.min' => 'Debe haber al menos 1 paquete.',
         ]);
+
+        // pulp_quantity_kg se guarda como referencia (kg de fruta usados)
+        $data['pulp_quantity_kg'] = $data['fruit_quantity_kg'];
 
         $transformacion = DB::transaction(function () use ($data) {
             $transformacion = Transformacion::create($data);
@@ -62,13 +68,14 @@ class TransformacionController extends Controller
                 ['product_id' => $data['pulp_product_id']],
                 ['quantity_kg' => 0]
             );
-            $invPulpa->increment('quantity_kg', $data['pulp_quantity_kg']);
+            // El inventario de pulpa se lleva en paquetes (quantity_kg almacena unidades)
+            $invPulpa->increment('quantity_kg', $data['pulp_quantity_packages']);
             $invPulpa->update(['quantity_updated_at' => now()]);
 
             MovimientoInventario::create([
                 'product_id' => $data['pulp_product_id'],
                 'type' => 'transformation',
-                'quantity_kg' => $data['pulp_quantity_kg'],
+                'quantity_kg' => $data['pulp_quantity_packages'],
                 'date' => $data['date'],
                 'reference_id' => $transformacion->id,
             ]);
