@@ -90,6 +90,23 @@ class LaborController extends Controller
         return response()->json(['data' => $task]);
     }
 
+    public function destroy(Labor $labor): JsonResponse
+    {
+        DB::transaction(function () use ($labor) {
+            $labor->load('supplies');
+
+            foreach ($labor->supplies as $supply) {
+                Insumo::where('id', $supply->id)
+                    ->increment('current_stock', $supply->pivot->quantity_used);
+            }
+
+            LaborInsumo::where('farm_task_id', $labor->id)->delete();
+            $labor->delete();
+        });
+
+        return response()->json(null, 204);
+    }
+
     private function validatedTask(Request $request): array
     {
         return $request->validate([

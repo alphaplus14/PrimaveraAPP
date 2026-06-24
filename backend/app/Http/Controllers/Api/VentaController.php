@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Inventario;
-use App\Models\MovimientoInventario;
+use App\Models\Compra;
 use App\Models\Venta;
+use App\Services\InventarioTransaccionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
+    public function __construct(
+        private InventarioTransaccionService $inventario,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $perPage = in_array((int) $request->per_page, [5, 10, 15, 25]) ? (int) $request->per_page : 15;
@@ -33,7 +37,65 @@ class VentaController extends Controller
         return response()->json($sales);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
+    {
+        $data = $this->validatedSale($request);
+
+        if ($response = $this->stockWarningResponse($data)) {
+            return $response;
+        }
+
+        $sale = $this->persistSale($data);
+
+        return response()->json(['data' => $sale->load(['product', 'customer'])], 201);
+    }
+
+    public function show(Venta $venta): JsonResponse
+    {
+        return response()->json(['data' => $venta->load(['product', 'customer'])]);
+    }
+
+    public function update(Request $request, Venta $venta): JsonResponse
+    {
+        $data = $this->validatedSale($request);
+
+        if ($response = $this->stockWarningResponse($data, $venta)) {
+            return $response;
+        }
+
+        $sale = DB::transaction(function () use ($data, $venta) {
+            $this->inventario->revertirVenta($venta);
+
+            $venta->update([
+                'date'        => $data['date'],
+                'customer_id' => $data['customer_id'],
+                'product_id'  => $data['product_id'],
+                'quantity_kg' => $data['quantity_kg'],
+                'sale_type'   => $data['sale_type'],
+                'unit_price'  => $data['unit_price'],
+                'total'       => $data['quantity_kg'] * $data['unit_price'],
+                'forced'      => $data['forced'] ?? false,
+            ]);
+
+            $this->inventario->aplicarVenta($venta->fresh());
+
+            return $venta->fresh();
+        });
+
+        return response()->json(['data' => $sale->load(['product', 'customer'])]);
+    }
+
+    public function destroy(Venta $venta): JsonResponse
+    {
+        DB::transaction(function () use ($venta) {
+            $this->inventario->revertirVenta($venta);
+            $venta->delete();
+        });
+
+        return response()->json(null, 204);
+    }
+
+    private function validatedSale(Request $request): array
     {
         $data = $request->validate([
             'date'        => 'required|date',
@@ -45,45 +107,52 @@ class VentaController extends Controller
             'force'       => 'boolean',
         ]);
 
-        $inventory = Inventario::where('product_id', $data['product_id'])->first();
-
-        if (!($data['force'] ?? false) && $inventory && $inventory->quantity_kg < $data['quantity_kg']) {
-            return response()->json([
-                'message'          => 'Insufficient stock.',
-                'available'        => $inventory->quantity_kg,
-                'stock_warning'    => true,
-            ], 422);
-        }
-
-        $data['total']  = $data['quantity_kg'] * $data['unit_price'];
         $data['forced'] = $data['force'] ?? false;
         unset($data['force']);
 
-        $sale = DB::transaction(function () use ($data, $inventory) {
-            $sale = Venta::create($data);
+        return $data;
+    }
 
-            if ($inventory) {
-                $inventory->quantity_kg      -= $data['quantity_kg'];
-                $inventory->stock_updated_at  = now();
-                $inventory->save();
-            }
+    private function stockWarningResponse(array $data, ?Venta $venta = null): ?JsonResponse
+    {
+        if ($data['forced'] ?? false) {
+            return null;
+        }
 
-            MovimientoInventario::create([
-                'product_id'   => $data['product_id'],
-                'type'         => 'sale',
-                'quantity_kg'  => -$data['quantity_kg'],
-                'date'         => $data['date'],
-                'reference_id' => $sale->id,
+        $disponible = $this->inventario->stockDisponibleVenta((int) $data['product_id']);
+
+        if ($venta && (int) $data['product_id'] === (int) $venta->product_id) {
+            $disponible += (float) $venta->quantity_kg;
+        }
+
+        if ($disponible < $data['quantity_kg']) {
+            return response()->json([
+                'message'       => 'Insufficient stock.',
+                'available'     => $disponible,
+                'stock_warning' => true,
+            ], 422);
+        }
+
+        return null;
+    }
+
+    private function persistSale(array $data): Venta
+    {
+        return DB::transaction(function () use ($data) {
+            $sale = Venta::create([
+                'date'        => $data['date'],
+                'customer_id' => $data['customer_id'],
+                'product_id'  => $data['product_id'],
+                'quantity_kg' => $data['quantity_kg'],
+                'sale_type'   => $data['sale_type'],
+                'unit_price'  => $data['unit_price'],
+                'total'       => $data['quantity_kg'] * $data['unit_price'],
+                'forced'      => $data['forced'] ?? false,
             ]);
+
+            $this->inventario->aplicarVenta($sale);
 
             return $sale;
         });
-
-        return response()->json(['data' => $sale->load(['product', 'customer'])], 201);
-    }
-
-    public function show(Venta $venta)
-    {
-        return response()->json(['data' => $venta->load(['product', 'customer'])]);
     }
 }

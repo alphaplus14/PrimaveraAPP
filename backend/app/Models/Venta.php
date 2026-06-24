@@ -17,6 +17,7 @@ class Venta extends Model
         'sale_type',
         'unit_price',
         'total',
+        'forced',
     ];
 
     protected $casts = [
@@ -24,6 +25,7 @@ class Venta extends Model
         'quantity_kg' => 'decimal:3',
         'unit_price'  => 'decimal:2',
         'total'       => 'decimal:2',
+        'forced'      => 'boolean',
     ];
 
     public function customer(): BelongsTo
