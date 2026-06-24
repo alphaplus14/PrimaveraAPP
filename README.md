@@ -123,6 +123,4 @@ PrimaveraAPP/
 ## Notas de desarrollo
 
 - La API corre en el puerto `8000` y el frontend en `5174`
-- CORS configurado para `localhost` en desarrollo (`backend/config/cors.php`)
-- Todos los mensajes de error están en español
-- Unidad de medida universal: **kilogramos (kg)**
+- En desarrollo, Vite hace **proxy** de `/api` al ba

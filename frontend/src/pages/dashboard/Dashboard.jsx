@@ -32,7 +32,7 @@ export default function Dashboard() {
   const [ventasSemanal, setVentasSemanal] = useState([])
   const [cargando, setCargando] = useState(true)
   const [cargandoGrafico, setCargandoGrafico] = useState(true)
-  const [error, setError] = useState(null)
+  const [errorCarga, setErrorCarga] = useState(null)
   const [modalStock, setModalStock] = useState(false)
   const [detalleStock, setDetalleStock] = useState(null)
   const [detalleVenta, setDetalleVenta] = useState(null)
@@ -55,8 +55,12 @@ export default function Dashboard() {
           stockBajo,
           ventasHoyLista: [...ventas].sort((a, b) => b.id - a.id),
         })
+        setErrorCarga(null)
       })
-      .catch(() => setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.'))
+      .catch(() => {
+        setDatos(null)
+        setErrorCarga('No se pudo conectar con el servidor. Verifica que el backend esté corriendo en el puerto 8000.')
+      })
       .finally(() => setCargando(false))
 
     getVentasUltimasSemanas(8)
@@ -88,11 +92,15 @@ export default function Dashboard() {
             <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-red-600 text-sm">
-          {error}
+      ) : errorCarga || !datos ? (
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 text-center">
+          <p className="text-sm text-slate-600 mb-2">{errorCarga ?? 'No hay datos disponibles.'}</p>
+          <p className="text-xs text-slate-400">
+            En la carpeta <code className="text-slate-500">backend</code> ejecuta:{' '}
+            <code className="text-slate-500">php artisan serve</code>
+          </p>
         </div>
-      ) : datos ? (
+      ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <TarjetaStat
@@ -381,20 +389,4 @@ function BotonAccionRapida({ label, icon, accent, onClick }) {
   )
 }
 
-function TarjetaStat({ label, valor, sub, accent }) {
-  const acentos = {
-    purple: { border: 'border-indigo-100', valor: 'text-[#5C27FE]', sub: 'text-indigo-400' },
-    cyan: { border: 'border-cyan-100', valor: 'text-[#06B6D4]', sub: 'text-cyan-500' },
-    indigo: { border: 'border-violet-100', valor: 'text-[#6366F1]', sub: 'text-violet-400' },
-    warning: { border: 'border-amber-100', valor: 'text-[#F59E0B]', sub: 'text-amber-500' },
-  }
-  const a = acentos[accent] ?? acentos.purple
-
-  return (
-    <div className={`rounded-2xl p-4 border bg-white shadow-sm ${a.border}`}>
-      <span className="text-xs font-medium text-slate-500">{label}</span>
-      <p className={`text-xl font-bold leading-tight mt-1 ${a.valor}`}>{valor}</p>
-      <p className={`text-xs mt-1 ${a.sub}`}>{sub}</p>
-    </div>
-  )
-}
+function TarjetaS

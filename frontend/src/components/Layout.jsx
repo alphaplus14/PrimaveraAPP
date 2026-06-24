@@ -211,25 +211,4 @@ export default function Layout() {
                 }
               >
                 {({ isActive }) => (
-                  <>
-                    <NavIcon src={icon} active={isActive} muted className="w-6 h-6" />
-                    <span className="truncate max-w-13">{label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setMobileNavOpen(true)}
-          aria-label="Mostrar menú"
-          className="md:hidden fixed bottom-4 right-4 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-[#6366F1] hover:bg-[#5C27FE] text-white shadow-lg transition-colors"
-        >
-          <ChevronIcon direction="up" className="w-5 h-5" />
-        </button>
-      )}
-    </div>
-  )
-}
+      
