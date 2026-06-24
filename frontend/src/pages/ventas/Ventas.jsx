@@ -23,8 +23,8 @@ export default function Ventas() {
       todos.filter((v) => {
         const q = busqueda.toLowerCase()
         return (
-          v.producto?.name?.toLowerCase().includes(q) ||
-          v.cliente?.name?.toLowerCase().includes(q)
+          v.product?.name?.toLowerCase().includes(q) ||
+          v.customer?.name?.toLowerCase().includes(q)
         )
       }),
     [todos, busqueda],
@@ -97,7 +97,7 @@ export default function Ventas() {
             {paginaItems.map((v) => (
               <div key={v.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start gap-2 mb-1.5">
-                  <p className="font-semibold text-gray-800">{v.producto?.name}</p>
+                  <p className="font-semibold text-gray-800">{v.product?.name}</p>
                   <span className="font-bold text-green-700 text-sm shrink-0">{formatCOP(v.total)}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -113,7 +113,7 @@ export default function Ventas() {
                 </div>
                 <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
                   <span className="truncate">
-                    {v.cliente?.name} · {Number(v.quantity_kg).toFixed(1)} kg
+                    {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg
                   </span>
                   <span className="shrink-0">{formatFechaCorta(v.date)}</span>
                 </div>
@@ -130,6 +130,7 @@ export default function Ventas() {
                   <th className="text-left px-4 py-3">Cliente</th>
                   <th className="text-left px-4 py-3">Tipo</th>
                   <th className="text-right px-4 py-3">kg</th>
+                  <th className="text-right px-4 py-3">$/kg</th>
                   <th className="text-right px-4 py-3">Total</th>
                 </tr>
               </thead>
@@ -137,8 +138,8 @@ export default function Ventas() {
                 {paginaItems.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatFechaCorta(v.date)}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{v.producto?.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{v.cliente?.name}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{v.product?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{v.customer?.name}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -152,6 +153,9 @@ export default function Ventas() {
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {Number(v.quantity_kg).toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                      {formatCOP(v.unit_price)}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-green-700 tabular-nums">
                       {formatCOP(v.total)}

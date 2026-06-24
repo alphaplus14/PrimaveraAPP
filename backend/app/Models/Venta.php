@@ -17,23 +17,21 @@ class Venta extends Model
         'sale_type',
         'unit_price',
         'total',
-        'forced',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date'        => 'date',
         'quantity_kg' => 'decimal:3',
-        'unit_price' => 'decimal:2',
-        'total' => 'decimal:2',
-        'forced' => 'boolean',
+        'unit_price'  => 'decimal:2',
+        'total'       => 'decimal:2',
     ];
 
-    public function cliente(): BelongsTo
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'customer_id');
     }
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
     }

@@ -5,41 +5,42 @@ import {
   getPrecioActual,
   crearPrecio,
 } from '../../api/productos'
-import { CATEGORY_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
+const TIPO_PRECIO_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
+
 const CATEGORIAS = [
-  { value: 'own', label: 'Propio', desc: 'Se produce en la finca' },
+  { value: 'own',       label: 'Propio',   desc: 'Se produce en la finca' },
   { value: 'purchased', label: 'Comprado', desc: 'Se compra a proveedores' },
-  { value: 'pulp', label: 'Pulpa', desc: 'Producto procesado' },
+  { value: 'pulp',      label: 'Pulpa',    desc: 'Producto procesado' },
 ]
 
 export default function FormProducto({ producto, onGuardado, onCerrar }) {
   const esEdicion = !!producto
 
   const [form, setForm] = useState({
-    name: producto?.name ?? '',
-    category: producto?.category ?? 'own',
-    is_fruit_for_pulp: producto?.is_fruit_for_pulp ?? false,
-    is_active: producto?.is_active ?? true,
+    name:          producto?.name          ?? '',
+    category:      producto?.category      ?? 'own',
+    is_pulp_fruit: producto?.is_pulp_fruit ?? false,
+    active:        producto?.active        ?? true,
   })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
   const [precios, setPrecios] = useState({ retail: null, wholesale: null })
   const [editandoPrecio, setEditandoPrecio] = useState(null)
-  const [formPrecio, setFormPrecio] = useState({ amount: '', effective_from: hoy() })
+  const [formPrecio, setFormPrecio] = useState({ value: '', valid_from: hoy() })
   const [guardandoPrecio, setGuardandoPrecio] = useState(false)
 
   useEffect(() => {
     if (esEdicion && producto.id) {
       getPrecioActual(producto.id).then(({ data }) => {
         setPrecios({
-          retail: data.data?.retail ?? null,
+          retail:    data.data?.retail    ?? null,
           wholesale: data.data?.wholesale ?? null,
         })
       }).catch(() => {})
@@ -66,20 +67,20 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
   }
 
   const handleGuardarPrecio = async () => {
-    if (!formPrecio.amount || Number(formPrecio.amount) <= 0) {
+    if (!formPrecio.value || Number(formPrecio.value) <= 0) {
       setError('El precio debe ser mayor a cero.')
       return
     }
     setGuardandoPrecio(true)
     try {
       const { data } = await crearPrecio(producto.id, {
-        type: editandoPrecio,
-        amount: formPrecio.amount,
-        effective_from: formPrecio.effective_from,
+        type:       editandoPrecio,
+        value:      formPrecio.value,
+        valid_from: formPrecio.valid_from,
       })
       setPrecios((prev) => ({ ...prev, [editandoPrecio]: data.data }))
       setEditandoPrecio(null)
-      setFormPrecio({ amount: '', effective_from: hoy() })
+      setFormPrecio({ value: '', valid_from: hoy() })
     } catch (err) {
       setError(err.response?.data?.message ?? 'Error al guardar el precio.')
     } finally {
@@ -87,11 +88,11 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
     }
   }
 
-  const abrirEditarPrecio = (type) => {
-    setEditandoPrecio(type)
+  const abrirEditarPrecio = (tipo) => {
+    setEditandoPrecio(tipo)
     setFormPrecio({
-      amount: precios[type] ? String(Number(precios[type].amount)) : '',
-      effective_from: hoy(),
+      value:      precios[tipo] ? String(Number(precios[tipo].value)) : '',
+      valid_from: hoy(),
     })
     setError(null)
   }
@@ -135,13 +136,13 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, is_fruit_for_pulp: !f.is_fruit_for_pulp }))}
+              onClick={() => setForm((f) => ({ ...f, is_pulp_fruit: !f.is_pulp_fruit }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.is_fruit_for_pulp ? 'bg-[#f56523]' : 'bg-gray-300'
+                form.is_pulp_fruit ? 'bg-[#f56523]' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.is_fruit_for_pulp ? 'translate-x-5' : 'translate-x-1'
+                form.is_pulp_fruit ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -156,13 +157,13 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
             <div
-              onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
+              onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${
-                form.is_active ? 'bg-green-500' : 'bg-gray-300'
+                form.active ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                form.is_active ? 'translate-x-5' : 'translate-x-1'
+                form.active ? 'translate-x-5' : 'translate-x-1'
               }`} />
             </div>
             <div>
@@ -179,12 +180,12 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
             Precios de venta
           </label>
           <div className="space-y-2">
-            {['retail', 'wholesale'].map((type) => (
-              <div key={type}>
-                {editandoPrecio === type ? (
+            {['retail', 'wholesale'].map((tipo) => (
+              <div key={tipo}>
+                {editandoPrecio === tipo ? (
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
                     <p className="text-xs font-semibold text-orange-700">
-                      Nuevo precio {SALE_TYPE_LABEL[type] ?? type}
+                      Nuevo precio {TIPO_PRECIO_LABEL[tipo]}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -195,8 +196,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                           min="1"
                           step="100"
                           placeholder="0"
-                          value={formPrecio.amount}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, amount: e.target.value }))}
+                          value={formPrecio.value}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, value: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -204,8 +205,8 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                         <label className="text-xs text-gray-400 mb-0.5 block">Vigente desde</label>
                         <input
                           type="date"
-                          value={formPrecio.effective_from}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, effective_from: e.target.value }))}
+                          value={formPrecio.valid_from}
+                          onChange={(e) => setFormPrecio((p) => ({ ...p, valid_from: e.target.value }))}
                           className={inputClass}
                         />
                       </div>
@@ -229,20 +230,20 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                 ) : (
                   <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                     <div>
-                      <p className="text-xs text-gray-400">{SALE_TYPE_LABEL[type] ?? type}</p>
+                      <p className="text-xs text-gray-400">{TIPO_PRECIO_LABEL[tipo]}</p>
                       <p className="text-sm font-semibold text-gray-800">
-                        {precios[type]
-                          ? formatCOP(precios[type].amount) + ' / kg'
+                        {precios[tipo]
+                          ? formatCOP(precios[tipo].value) + ' / kg'
                           : <span className="text-gray-400 font-normal">Sin precio</span>
                         }
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => abrirEditarPrecio(type)}
+                      onClick={() => abrirEditarPrecio(tipo)}
                       className="text-xs text-[#f56523] font-medium hover:underline"
                     >
-                      {precios[type] ? 'Actualizar' : 'Definir'}
+                      {precios[tipo] ? 'Actualizar' : 'Definir'}
                     </button>
                   </div>
                 )}

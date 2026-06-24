@@ -13,14 +13,14 @@ class Cliente extends Model
         'name',
         'type',
         'phone',
-        'is_active',
+        'active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'active' => 'boolean',
     ];
 
-    public function ventas(): HasMany
+    public function sales(): HasMany
     {
         return $this->hasMany(Venta::class, 'customer_id');
     }

@@ -14,7 +14,7 @@ class Labor extends Model
         'date',
         'task_type',
         'crop',
-        'assigned_to',
+        'responsible',
         'description',
     ];
 
@@ -22,12 +22,12 @@ class Labor extends Model
         'date' => 'date',
     ];
 
-    public function laborInsumos(): HasMany
+    public function farmTaskSupplies(): HasMany
     {
         return $this->hasMany(LaborInsumo::class, 'farm_task_id');
     }
 
-    public function insumos(): BelongsToMany
+    public function supplies(): BelongsToMany
     {
         return $this->belongsToMany(Insumo::class, 'farm_task_supply', 'farm_task_id', 'supply_id')
             ->withPivot('quantity_used')

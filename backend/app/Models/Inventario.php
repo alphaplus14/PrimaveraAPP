@@ -12,15 +12,15 @@ class Inventario extends Model
     protected $fillable = [
         'product_id',
         'quantity_kg',
-        'quantity_updated_at',
+        'stock_updated_at',
     ];
 
     protected $casts = [
-        'quantity_kg' => 'decimal:3',
-        'quantity_updated_at' => 'datetime',
+        'quantity_kg'      => 'decimal:3',
+        'stock_updated_at' => 'datetime',
     ];
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
     }

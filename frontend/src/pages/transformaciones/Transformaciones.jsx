@@ -231,7 +231,7 @@ export default function Transformaciones() {
                   <div className="flex items-center gap-2.5">
                     <span className="w-8 h-8 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-base">🌿</span>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{t.producto_origen?.name}</p>
+                      <p className="text-sm font-semibold text-slate-800">{t.source_product?.name}</p>
                       <p className="text-xs text-slate-400">{Number(t.fruit_quantity_kg).toFixed(1)} kg entrada</p>
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export default function Transformaciones() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-base">🧃</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{t.producto_pulpa?.name}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">{t.pulp_product?.name}</p>
                     <p className="text-xs text-slate-400">
                       {t.pulp_quantity_packages} paquetes · {kgPorPaquete(Number(t.fruit_quantity_kg), t.pulp_quantity_packages)} kg/paq
                     </p>
@@ -286,7 +286,7 @@ export default function Transformaciones() {
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap text-xs">{t.date}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 text-green-700 font-medium">
-                        🌿 {t.producto_origen?.name}
+                        🌿 {t.source_product?.name}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-600">
@@ -294,7 +294,7 @@ export default function Transformaciones() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 text-orange-600 font-medium">
-                        🧃 {t.producto_pulpa?.name}
+                        🧃 {t.pulp_product?.name}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">

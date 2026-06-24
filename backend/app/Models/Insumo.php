@@ -12,17 +12,17 @@ class Insumo extends Model
     protected $fillable = [
         'name',
         'type',
-        'unit_of_measure',
+        'unit',
         'current_stock',
-        'is_active',
+        'active',
     ];
 
     protected $casts = [
         'current_stock' => 'decimal:3',
-        'is_active' => 'boolean',
+        'active'        => 'boolean',
     ];
 
-    public function laborInsumos(): HasMany
+    public function farmTaskSupplies(): HasMany
     {
         return $this->hasMany(LaborInsumo::class, 'supply_id');
     }

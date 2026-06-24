@@ -12,16 +12,16 @@ class Precio extends Model
     protected $fillable = [
         'product_id',
         'type',
-        'amount',
-        'effective_from',
+        'value',
+        'valid_from',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'effective_from' => 'date',
+        'value'      => 'decimal:2',
+        'valid_from' => 'date',
     ];
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
     }

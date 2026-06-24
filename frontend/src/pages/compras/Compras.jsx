@@ -22,8 +22,8 @@ export default function Compras() {
       todos.filter((c) => {
         const q = busqueda.toLowerCase()
         return (
-          c.producto?.name?.toLowerCase().includes(q) ||
-          c.proveedor?.name?.toLowerCase().includes(q)
+          c.product?.name?.toLowerCase().includes(q) ||
+          c.supplier?.name?.toLowerCase().includes(q)
         )
       }),
     [todos, busqueda],
@@ -96,12 +96,12 @@ export default function Compras() {
             {paginaItems.map((c) => (
               <div key={c.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start gap-2 mb-1">
-                  <p className="font-semibold text-gray-800">{c.producto?.name}</p>
+                  <p className="font-semibold text-gray-800">{c.product?.name}</p>
                   <span className="font-bold text-[#1a365d] text-sm shrink-0">{formatCOP(c.total)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
                   <span className="truncate">
-                    {c.proveedor?.name} · {Number(c.quantity_kg).toFixed(1)} kg
+                    {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)} kg
                   </span>
                   <span className="shrink-0">{formatFechaCorta(c.date)}</span>
                 </div>
@@ -125,8 +125,8 @@ export default function Compras() {
                 {paginaItems.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatFechaCorta(c.date)}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{c.producto?.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{c.proveedor?.name}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{c.product?.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{c.supplier?.name}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {Number(c.quantity_kg).toFixed(1)}
                     </td>

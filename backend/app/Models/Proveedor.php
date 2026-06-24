@@ -13,14 +13,14 @@ class Proveedor extends Model
         'name',
         'type',
         'phone',
-        'is_active',
+        'active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'active' => 'boolean',
     ];
 
-    public function compras(): HasMany
+    public function purchases(): HasMany
     {
         return $this->hasMany(Compra::class, 'supplier_id');
     }

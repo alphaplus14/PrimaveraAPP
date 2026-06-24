@@ -16,7 +16,7 @@ class TransformacionController extends Controller
     {
         $perPage = in_array((int) $request->per_page, [5, 10, 25]) ? (int) $request->per_page : 10;
 
-        $transformaciones = Transformacion::with(['productoOrigen', 'productoPulpa'])
+        $transformaciones = Transformacion::with(['sourceProduct', 'pulpProduct'])
             ->when($request->desde, fn ($q) => $q->where('date', '>=', $request->desde))
             ->when($request->hasta, fn ($q) => $q->where('date', '<=', $request->hasta))
             ->orderByDesc('date')
@@ -43,7 +43,6 @@ class TransformacionController extends Controller
             'pulp_quantity_packages.min' => 'Debe haber al menos 1 paquete.',
         ]);
 
-        // pulp_quantity_kg se guarda como referencia (kg de fruta usados)
         $data['pulp_quantity_kg'] = $data['fruit_quantity_kg'];
 
         $transformacion = DB::transaction(function () use ($data) {
@@ -54,7 +53,7 @@ class TransformacionController extends Controller
                 ['quantity_kg' => 0]
             );
             $invOrigen->decrement('quantity_kg', $data['fruit_quantity_kg']);
-            $invOrigen->update(['quantity_updated_at' => now()]);
+            $invOrigen->update(['stock_updated_at' => now()]);
 
             MovimientoInventario::create([
                 'product_id' => $data['source_product_id'],
@@ -68,9 +67,8 @@ class TransformacionController extends Controller
                 ['product_id' => $data['pulp_product_id']],
                 ['quantity_kg' => 0]
             );
-            // El inventario de pulpa se lleva en paquetes (quantity_kg almacena unidades)
             $invPulpa->increment('quantity_kg', $data['pulp_quantity_packages']);
-            $invPulpa->update(['quantity_updated_at' => now()]);
+            $invPulpa->update(['stock_updated_at' => now()]);
 
             MovimientoInventario::create([
                 'product_id' => $data['pulp_product_id'],
@@ -84,14 +82,14 @@ class TransformacionController extends Controller
         });
 
         return response()->json([
-            'data' => $transformacion->load(['productoOrigen', 'productoPulpa']),
+            'data' => $transformacion->load(['sourceProduct', 'pulpProduct']),
         ], 201);
     }
 
     public function show(Transformacion $transformacion): JsonResponse
     {
         return response()->json([
-            'data' => $transformacion->load(['productoOrigen', 'productoPulpa']),
+            'data' => $transformacion->load(['sourceProduct', 'pulpProduct']),
         ]);
     }
 }

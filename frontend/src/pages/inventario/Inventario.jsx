@@ -26,7 +26,7 @@ export default function Inventario() {
 
   const todos = items?.data ?? items ?? []
   const lista = todos.filter((i) =>
-    i.producto?.name?.toLowerCase().includes(busqueda.toLowerCase()),
+    i.product?.name?.toLowerCase().includes(busqueda.toLowerCase()),
   )
 
   const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
@@ -69,7 +69,7 @@ export default function Inventario() {
       ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
       : null
 
-  const esPulpa = ajuste?.producto?.category === 'pulp'
+  const esPulpa = ajuste?.product?.category === 'pulp'
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
@@ -113,7 +113,7 @@ export default function Inventario() {
                 {paginaItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-800">
-                      {item.producto?.name}
+                      {item.product?.name}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-semibold tabular-nums ${
@@ -124,11 +124,11 @@ export default function Inventario() {
                             : 'text-gray-800'
                       }`}
                     >
-                      {formatStock(item.producto, item.quantity_kg, { corto: true })}
+                      {formatStock(item.product, item.quantity_kg, { corto: true })}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
-                      {item.quantity_updated_at
-                        ? new Date(item.quantity_updated_at).toLocaleDateString('es-CO')
+                      {item.stock_updated_at
+                        ? new Date(item.stock_updated_at).toLocaleDateString('es-CO')
                         : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -162,12 +162,12 @@ export default function Inventario() {
       )}
 
       {ajuste && (
-        <Modal titulo={`Ajustar — ${ajuste.producto?.name}`} onClose={() => setAjuste(null)}>
+        <Modal titulo={`Ajustar — ${ajuste.product?.name}`} onClose={() => setAjuste(null)}>
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-lg px-4 py-3 flex justify-between items-center">
               <span className="text-sm text-gray-500">Stock actual</span>
               <span className="font-bold text-gray-800">
-                {formatStock(ajuste.producto, ajuste.quantity_kg)}
+                {formatStock(ajuste.product, ajuste.quantity_kg)}
               </span>
             </div>
 
@@ -201,7 +201,7 @@ export default function Inventario() {
                 <span
                   className={`font-bold text-lg ${stockNuevo < 0 ? 'text-red-600' : 'text-green-700'}`}
                 >
-                  {formatStock(ajuste.producto, stockNuevo)}
+                  {formatStock(ajuste.product, stockNuevo)}
                 </span>
               </div>
             )}

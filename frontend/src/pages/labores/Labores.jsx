@@ -21,7 +21,7 @@ export default function Labores() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const { data, cargando, recargar } = useApi(getLabores)
 
-  const lista = data?.data ?? data ?? []
+  const lista = data ?? []
 
   const handleGuardado = () => {
     setMostrarForm(false)
@@ -78,20 +78,20 @@ export default function Labores() {
                     {l.crop && (
                       <p className="text-xs text-gray-500 mt-0.5">Cultivo: {l.crop}</p>
                     )}
-                    {l.assigned_to && (
-                      <p className="text-xs text-gray-500">Responsable: {l.assigned_to}</p>
+                    {l.responsible && (
+                      <p className="text-xs text-gray-500">Responsable: {l.responsible}</p>
                     )}
                     {l.description && (
                       <p className="text-xs text-gray-400 mt-1 truncate">{l.description}</p>
                     )}
-                    {l.insumos?.length > 0 && (
+                    {l.supplies?.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {l.insumos.map((ins) => (
+                        {l.supplies.map((ins) => (
                           <span
                             key={ins.id}
                             className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
                           >
-                            {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit_of_measure}
+                            {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit}
                           </span>
                         ))}
                       </div>
@@ -122,16 +122,16 @@ export default function Labores() {
                       {icono(l.task_type)} {l.task_type}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{l.crop ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{l.assigned_to ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{l.responsible ?? '—'}</td>
                     <td className="px-4 py-3">
-                      {l.insumos?.length > 0 ? (
+                      {l.supplies?.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {l.insumos.map((ins) => (
+                          {l.supplies.map((ins) => (
                             <span
                               key={ins.id}
                               className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
                             >
-                              {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit_of_measure}
+                              {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')} {ins.unit}
                             </span>
                           ))}
                         </div>

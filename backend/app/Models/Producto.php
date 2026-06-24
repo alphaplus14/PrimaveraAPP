@@ -14,52 +14,52 @@ class Producto extends Model
     protected $fillable = [
         'name',
         'category',
-        'unit_of_measure',
-        'is_active',
-        'is_fruit_for_pulp',
+        'unit',
+        'active',
+        'is_pulp_fruit',
         'related_pulp_id',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'is_fruit_for_pulp' => 'boolean',
+        'active'        => 'boolean',
+        'is_pulp_fruit' => 'boolean',
     ];
 
-    public function pulpaRelacionada(): BelongsTo
+    public function relatedPulp(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'related_pulp_id');
     }
 
-    public function inventario(): HasOne
+    public function inventory(): HasOne
     {
         return $this->hasOne(Inventario::class, 'product_id');
     }
 
-    public function precios(): HasMany
+    public function prices(): HasMany
     {
         return $this->hasMany(Precio::class, 'product_id');
     }
 
-    public function precioActual(string $type): ?Precio
+    public function currentPrice(string $type): ?Precio
     {
-        return $this->precios()
+        return $this->prices()
             ->where('type', $type)
-            ->where('effective_from', '<=', now()->toDateString())
-            ->orderByDesc('effective_from')
+            ->where('valid_from', '<=', now()->toDateString())
+            ->orderByDesc('valid_from')
             ->first();
     }
 
-    public function movimientos(): HasMany
+    public function movements(): HasMany
     {
         return $this->hasMany(MovimientoInventario::class, 'product_id');
     }
 
-    public function compras(): HasMany
+    public function purchases(): HasMany
     {
         return $this->hasMany(Compra::class, 'product_id');
     }
 
-    public function ventas(): HasMany
+    public function sales(): HasMany
     {
         return $this->hasMany(Venta::class, 'product_id');
     }
