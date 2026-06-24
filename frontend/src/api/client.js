@@ -26,4 +26,8 @@ client.interceptors.response.use(
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
-    return Promise.reje
+    return Promise.reject(error)
+  }
+)
+
+export default client

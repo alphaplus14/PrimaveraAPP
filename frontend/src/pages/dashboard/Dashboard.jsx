@@ -195,7 +195,7 @@ export default function Dashboard() {
             </div>
           </div>
         </>
-      ) : null}
+      )}
 
       {modalStock && datos && (
         <ModalPaginado
@@ -389,4 +389,20 @@ function BotonAccionRapida({ label, icon, accent, onClick }) {
   )
 }
 
-function TarjetaS
+function TarjetaStat({ label, valor, sub, accent }) {
+  const acentos = {
+    purple: { border: 'border-indigo-100', valor: 'text-[#5C27FE]', sub: 'text-indigo-400' },
+    cyan: { border: 'border-cyan-100', valor: 'text-[#06B6D4]', sub: 'text-cyan-500' },
+    indigo: { border: 'border-violet-100', valor: 'text-[#6366F1]', sub: 'text-violet-400' },
+    warning: { border: 'border-amber-100', valor: 'text-[#F59E0B]', sub: 'text-amber-500' },
+  }
+  const a = acentos[accent] ?? acentos.purple
+
+  return (
+    <div className={`rounded-2xl p-4 border bg-white shadow-sm ${a.border}`}>
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <p className={`text-xl font-bold leading-tight mt-1 ${a.valor}`}>{valor}</p>
+      <p className={`text-xs mt-1 ${a.sub}`}>{sub}</p>
+    </div>
+  )
+}

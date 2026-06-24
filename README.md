@@ -123,4 +123,8 @@ PrimaveraAPP/
 ## Notas de desarrollo
 
 - La API corre en el puerto `8000` y el frontend en `5174`
-- En desarrollo, Vite hace **proxy** de `/api` al ba
+- En desarrollo, Vite hace **proxy** de `/api` al backend (evita errores CORS). No hace falta apuntar axios a `127.0.0.1:8000` directamente.
+- Si ves error CORS: confirma que `php artisan serve` está corriendo y reinicia `npm run dev`
+- CORS explícito para `localhost:5174` en `backend/config/cors.php`
+- Todos los mensajes de error están en español
+- Unidad de medida universal: **kilogramos (kg)**

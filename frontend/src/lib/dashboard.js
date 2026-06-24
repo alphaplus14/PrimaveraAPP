@@ -85,4 +85,8 @@ export function tiempoRelativo(fechaISO) {
   const ahora = new Date()
   const diffMin = Math.floor((ahora - fecha) / 60000)
   if (diffMin < 1) return 'ahora'
-  if (diffMin < 
+  if (diffMin < 60) return `hace ${diffMin} min`
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) return `hace ${diffH} h`
+  return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+}

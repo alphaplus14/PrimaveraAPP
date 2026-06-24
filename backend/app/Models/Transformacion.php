@@ -31,4 +31,8 @@ class Transformacion extends Model
         return $this->belongsTo(Producto::class, 'source_product_id');
     }
 
-    public function pulpProduct(): Be
+    public function pulpProduct(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class, 'pulp_product_id');
+    }
+}

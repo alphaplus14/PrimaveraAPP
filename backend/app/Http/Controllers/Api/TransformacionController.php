@@ -64,4 +64,34 @@ class TransformacionController extends Controller
                 'reference_id' => $transformacion->id,
             ]);
 
-            $invPulpa = Inventario
+            $invPulpa = Inventario::firstOrCreate(
+                ['product_id' => $data['pulp_product_id']],
+                ['quantity_kg' => 0]
+            );
+            // El inventario de pulpa se lleva en paquetes (quantity_kg almacena unidades)
+            $invPulpa->increment('quantity_kg', $data['pulp_quantity_packages']);
+            $invPulpa->update(['stock_updated_at' => now()]);
+
+            MovimientoInventario::create([
+                'product_id'   => $data['pulp_product_id'],
+                'type'         => 'transformation',
+                'quantity_kg'  => $data['pulp_quantity_packages'],
+                'date'         => $data['date'],
+                'reference_id' => $transformacion->id,
+            ]);
+
+            return $transformacion;
+        });
+
+        return response()->json([
+            'data' => $transformacion->load(['sourceProduct', 'pulpProduct']),
+        ], 201);
+    }
+
+    public function show(Transformacion $transformacion): JsonResponse
+    {
+        return response()->json([
+            'data' => $transformacion->load(['sourceProduct', 'pulpProduct']),
+        ]);
+    }
+}
