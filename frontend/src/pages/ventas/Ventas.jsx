@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getVentas } from '../../api/ventas'
-import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
@@ -13,36 +12,41 @@ const POR_PAGINA = 15
 export default function Ventas() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [busqueda, setBusqueda] = useState('')
-  const [pagina, setPagina] = useState(1)
-  const { data: ventas, cargando, recargar } = useApi(getVentas)
+  const [lista, setLista] = useState([])
+  const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
+  const [cargando, setCargando] = useState(true)
 
-  const todos = ventas?.data ?? ventas ?? []
-
-  const lista = useMemo(
-    () =>
-      todos.filter((v) => {
-        const q = busqueda.toLowerCase()
-        return (
-          v.product?.name?.toLowerCase().includes(q) ||
-          v.customer?.name?.toLowerCase().includes(q)
-        )
-      }),
-    [todos, busqueda],
-  )
-
-  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
-  const paginaActual = Math.min(pagina, totalPaginas)
-  const inicio = (paginaActual - 1) * POR_PAGINA
-  const paginaItems = lista.slice(inicio, inicio + POR_PAGINA)
+  const cargar = useCallback(async (page = 1) => {
+    setCargando(true)
+    try {
+      const params = { page, per_page: POR_PAGINA }
+      if (busqueda.trim()) params.busqueda = busqueda.trim()
+      const res = await getVentas(params)
+      const paginado = res.data
+      setLista(paginado.data ?? [])
+      setMeta({
+        currentPage: paginado.current_page ?? 1,
+        lastPage: paginado.last_page ?? 1,
+        total: paginado.total ?? 0,
+      })
+    } catch {
+      setLista([])
+      setMeta({ currentPage: 1, lastPage: 1, total: 0 })
+    } finally {
+      setCargando(false)
+    }
+  }, [busqueda])
 
   useEffect(() => {
-    setPagina(1)
-  }, [busqueda])
+    cargar(1)
+  }, [cargar])
 
   const handleGuardado = () => {
     setMostrarForm(false)
-    recargar()
+    cargar(1)
   }
+
+  const inicio = (meta.currentPage - 1) * POR_PAGINA
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
@@ -50,7 +54,7 @@ export default function Ventas() {
         <h2 className="text-xl font-bold text-[#1a365d]">Ventas</h2>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            {lista.length} venta{lista.length !== 1 ? 's' : ''}
+            {meta.total} venta{meta.total !== 1 ? 's' : ''}
           </span>
           <button
             type="button"
@@ -94,7 +98,7 @@ export default function Ventas() {
       ) : (
         <>
           <div className="md:hidden space-y-3">
-            {paginaItems.map((v) => (
+            {lista.map((v) => (
               <div key={v.id} className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex justify-between items-start gap-2 mb-1.5">
                   <p className="font-semibold text-gray-800">{v.product?.name}</p>
@@ -135,7 +139,7 @@ export default function Ventas() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {paginaItems.map((v) => (
+                {lista.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatFechaCorta(v.date)}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{v.product?.name}</td>
@@ -167,16 +171,16 @@ export default function Ventas() {
           </div>
 
           <Paginacion
-            pagina={paginaActual}
-            totalPaginas={totalPaginas}
-            total={lista.length}
-            totalGeneral={todos.length}
+            pagina={meta.currentPage}
+            totalPaginas={meta.lastPage}
+            total={meta.total}
+            totalGeneral={meta.total}
             porPagina={POR_PAGINA}
             inicio={inicio}
             filtrado={!!busqueda}
             sustantivo="venta"
-            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
-            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            onAnterior={() => cargar(meta.currentPage - 1)}
+            onSiguiente={() => cargar(meta.currentPage + 1)}
           />
         </>
       )}
