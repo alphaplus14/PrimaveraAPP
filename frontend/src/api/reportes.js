@@ -1,11 +1,17 @@
 import client from './client'
 
-// Usado por Dashboard
+const isoLocal = (d) => {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+// Usado por Dashboard — reportes sí filtran por fecha (ventas/compras index no)
 export const getResumenHoy = () => {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = isoLocal(new Date())
+  const params = { desde: hoy, hasta: hoy }
   return Promise.all([
-    client.get('/ventas',    { params: { desde: hoy, hasta: hoy } }),
-    client.get('/compras',   { params: { desde: hoy, hasta: hoy } }),
+    client.get('/reportes/ventas', { params }),
+    client.get('/reportes/compras', { params }),
     client.get('/inventario'),
     client.get('/productos'),
   ])
