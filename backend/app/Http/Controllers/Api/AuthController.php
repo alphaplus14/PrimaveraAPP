@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Auth\IssueSpaToken;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -45,7 +46,7 @@ class AuthController extends Controller
             ]);
         }
 
-        return $this->issueToken($user);
+        return app(IssueSpaToken::class)($user);
     }
 
     public function logout(Request $request): JsonResponse
@@ -58,23 +59,5 @@ class AuthController extends Controller
     public function user(Request $request): JsonResponse
     {
         return response()->json(['data' => $request->user()]);
-    }
-
-    private function issueToken(User $user): JsonResponse
-    {
-        $token = $user->createToken('spa')->plainTextToken;
-
-        return response()->json([
-            'data' => [
-                'user' => [
-                    'id'              => $user->id,
-                    'name'            => $user->name,
-                    'email'           => $user->email,
-                    'rol'             => $user->rol,
-                    'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
-                ],
-                'token' => $token,
-            ],
-        ]);
     }
 }

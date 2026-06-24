@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Auth\IssueSpaToken;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -40,7 +41,8 @@ class TwoFactorController extends Controller
                 // Regenerar recovery codes después de usar uno
                 app(GenerateNewRecoveryCodes::class)($user);
                 Cache::forget($cacheKey);
-                return $this->issueToken($user);
+
+                return app(IssueSpaToken::class)($user);
             }
             return response()->json(['message' => 'Código de recuperación no válido.'], 422);
         }
@@ -50,7 +52,8 @@ class TwoFactorController extends Controller
         }
 
         Cache::forget($cacheKey);
-        return $this->issueToken($user);
+
+        return app(IssueSpaToken::class)($user);
     }
 
     /** Activar 2FA — devuelve QR code SVG y clave manual */
@@ -131,24 +134,6 @@ class TwoFactorController extends Controller
             'data' => [
                 'enabled'   => $user->hasEnabledTwoFactorAuthentication(),
                 'confirmed' => ! is_null($user->two_factor_confirmed_at),
-            ],
-        ]);
-    }
-
-    private function issueToken(User $user): JsonResponse
-    {
-        $token = $user->createToken('spa')->plainTextToken;
-
-        return response()->json([
-            'data' => [
-                'user' => [
-                    'id'                 => $user->id,
-                    'name'               => $user->name,
-                    'email'              => $user->email,
-                    'rol'                => $user->rol,
-                    'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
-                ],
-                'token' => $token,
             ],
         ]);
     }
