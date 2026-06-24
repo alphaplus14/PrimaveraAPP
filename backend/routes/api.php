@@ -54,8 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('clientes', ClienteController::class);
 
     // Compras y ventas
-    Route::apiResource('compras', CompraController::class)->only(['index', 'store', 'show']);
-    Route::apiResource('ventas', VentaController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('compras', CompraController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::apiResource('ventas', VentaController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
     // Transformaciones
     Route::apiResource('transformaciones', TransformacionController::class)->only(['index', 'store', 'show']);

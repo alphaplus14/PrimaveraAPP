@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react'
-import { crearVenta, getClientes, crearCliente } from '../../api/ventas'
+import { crearVenta, actualizarVenta, getClientes, crearCliente } from '../../api/ventas'
 import { getProductos, getPrecioActual } from '../../api/productos'
 import { getInventario } from '../../api/inventario'
 import SelectBuscable from '../../components/ui/SelectBuscable'
 
 const hoy = () => new Date().toISOString().split('T')[0]
+const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
 
 const lineaVacia = () => ({
   id: Math.random(),
   product_id: '',
-  sale_type:  'retail',
+  sale_type: 'retail',
   quantity_kg: '',
-  unit_price:  '',
+  unit_price: '',
+})
+
+const lineaDesdeVenta = (venta) => ({
+  id: Math.random(),
+  product_id: String(venta.product_id),
+  sale_type: venta.sale_type ?? 'retail',
+  quantity_kg: String(venta.quantity_kg),
+  unit_price: String(venta.unit_price),
 })
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
-export default function FormVenta({ onGuardado, onCerrar }) {
+export default function FormVenta({ venta, onGuardado, onCerrar }) {
+  const esEdicion = !!venta
+
   const [productos, setProductos] = useState([])
   const [clientes, setClientes] = useState([])
   const [inventario, setInventario] = useState([])
@@ -26,8 +37,13 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   const [advertencias, setAdvertencias] = useState({})
   const [confirmarForzar, setConfirmarForzar] = useState(false)
 
-  const [cabecera, setCabecera] = useState({ date: hoy(), customer_id: '' })
-  const [lineas, setLineas] = useState([lineaVacia()])
+  const [cabecera, setCabecera] = useState({
+    date: fechaInput(venta?.date),
+    customer_id: venta ? String(venta.customer_id) : '',
+  })
+  const [lineas, setLineas] = useState(() =>
+    esEdicion ? [lineaDesdeVenta(venta)] : [lineaVacia()],
+  )
 
   useEffect(() => {
     Promise.all([getProductos(), getClientes(), getInventario()]).then(([p, c, i]) => {
@@ -37,14 +53,22 @@ export default function FormVenta({ onGuardado, onCerrar }) {
     })
   }, [])
 
+  const stockParaProducto = (productId) => {
+    const inv = inventario.find((i) => i.product_id === Number(productId))
+    let stock = inv ? Number(inv.quantity_kg) : 0
+    if (esEdicion && venta && Number(venta.product_id) === Number(productId)) {
+      stock += Number(venta.quantity_kg)
+    }
+    return stock
+  }
+
   const actualizarLinea = async (id, campo, valor) => {
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
 
-    const linea      = lineas.find((l) => l.id === id)
-    const product_id = campo === 'product_id' ? valor : linea.product_id
-    const sale_type  = campo === 'sale_type'  ? valor : linea.sale_type
+    const linea = lineas.find((l) => l.id === id)
+    const product_id = campo === 'product_id' ? valor : linea?.product_id
+    const sale_type = campo === 'sale_type' ? valor : linea?.sale_type
 
-    // Auto-fill price from catalogue
     if ((campo === 'product_id' || campo === 'sale_type') && product_id) {
       try {
         const { data } = await getPrecioActual(product_id)
@@ -52,38 +76,41 @@ export default function FormVenta({ onGuardado, onCerrar }) {
         setLineas((prev) =>
           prev.map((l) =>
             l.id === id
-              ? { ...l, [campo]: valor, unit_price: precio ? Number(precio.value) : '' }
-              : l
-          )
+              ? { ...l, [campo]: valor, unit_price: precio ? Number(precio.value) : l.unit_price }
+              : l,
+          ),
         )
       } catch {
-        // no price, leave empty
+        // sin precio en catálogo
       }
     }
 
-    // Check stock
     if (campo === 'quantity_kg' || campo === 'product_id') {
-      const pid = campo === 'product_id' ? valor : linea.product_id
-      const kg  = campo === 'quantity_kg' ? valor : linea.quantity_kg
+      const pid = campo === 'product_id' ? valor : linea?.product_id
+      const kg = campo === 'quantity_kg' ? valor : linea?.quantity_kg
       if (pid && kg) {
-        const inv   = inventario.find((i) => i.product_id === Number(pid))
-        const stock = inv ? Number(inv.quantity_kg) : 0
+        const stock = stockParaProducto(pid)
         if (Number(kg) > stock) {
           setAdvertencias((prev) => ({ ...prev, [id]: stock }))
         } else {
-          setAdvertencias((prev) => { const n = { ...prev }; delete n[id]; return n })
+          setAdvertencias((prev) => {
+            const n = { ...prev }
+            delete n[id]
+            return n
+          })
         }
       }
     }
   }
 
-  const agregarLinea  = () => setLineas((prev) => [...prev, lineaVacia()])
+  const agregarLinea = () => setLineas((prev) => [...prev, lineaVacia()])
   const eliminarLinea = (id) => setLineas((prev) => prev.filter((l) => l.id !== id))
 
-  const totalGeneral = lineas.reduce((sum, l) =>
-    sum + (l.quantity_kg && l.unit_price
-      ? Number(l.quantity_kg) * Number(l.unit_price)
-      : 0), 0)
+  const totalGeneral = lineas.reduce(
+    (sum, l) =>
+      sum + (l.quantity_kg && l.unit_price ? Number(l.quantity_kg) * Number(l.unit_price) : 0),
+    0,
+  )
 
   const handleCrearCliente = async (name) => {
     try {
@@ -95,9 +122,22 @@ export default function FormVenta({ onGuardado, onCerrar }) {
     }
   }
 
+  const payloadLinea = (linea, forzar) => ({
+    date: cabecera.date,
+    customer_id: cabecera.customer_id,
+    product_id: linea.product_id,
+    sale_type: linea.sale_type,
+    quantity_kg: linea.quantity_kg,
+    unit_price: linea.unit_price,
+    force: forzar,
+  })
+
   const handleSubmit = async (forzar = false) => {
     setError(null)
-    if (!cabecera.customer_id) { setError('Selecciona un cliente.'); return }
+    if (!cabecera.customer_id) {
+      setError('Selecciona un cliente.')
+      return
+    }
     if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
       setError('Completa todos los campos de cada línea.')
       return
@@ -111,21 +151,17 @@ export default function FormVenta({ onGuardado, onCerrar }) {
 
     setGuardando(true)
     try {
-      await Promise.all(
-        lineas.map((l) =>
-          crearVenta({
-            date:        cabecera.date,
-            customer_id: cabecera.customer_id,
-            product_id:  l.product_id,
-            sale_type:   l.sale_type,
-            quantity_kg: l.quantity_kg,
-            unit_price:  l.unit_price,
-            force:       forzar,
-          })
-        )
-      )
+      if (esEdicion) {
+        await actualizarVenta(venta.id, payloadLinea(lineas[0], forzar))
+      } else {
+        await Promise.all(lineas.map((l) => crearVenta(payloadLinea(l, forzar))))
+      }
       onGuardado()
     } catch (err) {
+      if (err.response?.data?.stock_warning) {
+        setConfirmarForzar(true)
+        return
+      }
       setError(err.response?.data?.message ?? 'Error al guardar la venta.')
     } finally {
       setGuardando(false)
@@ -158,26 +194,36 @@ export default function FormVenta({ onGuardado, onCerrar }) {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Productos</label>
-          <button
-            type="button"
-            onClick={agregarLinea}
-            className="text-xs text-[#f56523] font-semibold hover:underline"
-          >
-            + Agregar producto
-          </button>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            {esEdicion ? 'Producto' : 'Productos'}
+          </label>
+          {!esEdicion && (
+            <button
+              type="button"
+              onClick={agregarLinea}
+              className="text-xs text-[#f56523] font-semibold hover:underline"
+            >
+              + Agregar producto
+            </button>
+          )}
         </div>
 
         {lineas.map((linea, idx) => (
           <div key={linea.id} className="bg-gray-50 rounded-xl p-3 space-y-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-gray-400">#{idx + 1}</span>
-              {lineas.length > 1 && (
-                <button onClick={() => eliminarLinea(linea.id)} className="text-xs text-red-400 hover:text-red-600">
-                  Eliminar
-                </button>
-              )}
-            </div>
+            {!esEdicion && (
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-400">#{idx + 1}</span>
+                {lineas.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => eliminarLinea(linea.id)}
+                    className="text-xs text-red-400 hover:text-red-600"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            )}
 
             <SelectBuscable
               opciones={productos.map((p) => ({ value: p.id, label: p.name }))}
@@ -221,7 +267,7 @@ export default function FormVenta({ onGuardado, onCerrar }) {
               </div>
 
               <div>
-                <label className="text-xs text-gray-400 mb.0.5 block">$/kg *</label>
+                <label className="text-xs text-gray-400 mb-0.5 block">$/kg *</label>
                 <input
                   type="number"
                   min="0"
@@ -268,12 +314,17 @@ export default function FormVenta({ onGuardado, onCerrar }) {
           </p>
           <div className="flex gap-2">
             <button
-              onClick={() => { setConfirmarForzar(false); handleSubmit(true) }}
+              type="button"
+              onClick={() => {
+                setConfirmarForzar(false)
+                handleSubmit(true)
+              }}
               className="flex-1 bg-amber-500 text-white py-2.5 rounded-lg text-sm font-medium"
             >
               Sí, registrar igual
             </button>
             <button
+              type="button"
               onClick={() => setConfirmarForzar(false)}
               className="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm"
             >
@@ -286,17 +337,23 @@ export default function FormVenta({ onGuardado, onCerrar }) {
       {!confirmarForzar && (
         <div className="flex gap-3 pt-1">
           <button
+            type="button"
             onClick={onCerrar}
             className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium"
           >
             Cancelar
           </button>
           <button
+            type="button"
             onClick={() => handleSubmit(false)}
             disabled={guardando}
             className="flex-1 bg-[#f56523] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-60"
           >
-            {guardando ? 'Guardando...' : `Registrar${lineas.length > 1 ? ` (${lineas.length} productos)` : ''}`}
+            {guardando
+              ? 'Guardando...'
+              : esEdicion
+                ? 'Guardar cambios'
+                : `Registrar${lineas.length > 1 ? ` (${lineas.length} productos)` : ''}`}
           </button>
         </div>
       )}
@@ -304,4 +361,5 @@ export default function FormVenta({ onGuardado, onCerrar }) {
   )
 }
 
-const inputClass = 'w-full border border-gray-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523] focus:border-transparent'
+const inputClass =
+  'w-full border border-gray-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f56523] focus:border-transparent'

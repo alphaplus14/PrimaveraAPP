@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getCompras } from '../../api/compras'
+import { getCompras, eliminarCompra } from '../../api/compras'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
+import AccionesRegistro from '../../components/ui/AccionesRegistro'
 import FormCompra from './FormCompra'
 import { formatCOP, formatFechaCorta } from '../../lib/dashboard'
 
@@ -10,6 +11,7 @@ const POR_PAGINA = 15
 
 export default function Compras() {
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [compraEditar, setCompraEditar] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [lista, setLista] = useState([])
   const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
@@ -42,7 +44,36 @@ export default function Compras() {
 
   const handleGuardado = () => {
     setMostrarForm(false)
-    cargar(1)
+    setCompraEditar(null)
+    cargar(meta.currentPage)
+  }
+
+  const handleNuevo = () => {
+    setCompraEditar(null)
+    setMostrarForm(true)
+  }
+
+  const handleEditar = (compra) => {
+    setCompraEditar(compra)
+    setMostrarForm(true)
+  }
+
+  const handleEliminar = async (compra) => {
+    const nombre = compra.product?.name ?? 'esta compra'
+    if (!window.confirm(`¿Eliminar la compra de ${nombre}? Se descontará del inventario.`)) {
+      return
+    }
+    try {
+      await eliminarCompra(compra.id)
+      cargar(meta.currentPage)
+    } catch {
+      window.alert('No se pudo eliminar la compra.')
+    }
+  }
+
+  const cerrarModal = () => {
+    setMostrarForm(false)
+    setCompraEditar(null)
   }
 
   const inicio = (meta.currentPage - 1) * POR_PAGINA
@@ -57,7 +88,7 @@ export default function Compras() {
           </span>
           <button
             type="button"
-            onClick={() => setMostrarForm(true)}
+            onClick={handleNuevo}
             className="bg-[#f56523] text-white text-sm px-4 py-2.5 rounded-xl font-medium hover:bg-[#d9541a] transition-colors"
           >
             + Nueva compra
@@ -87,7 +118,7 @@ export default function Compras() {
           {!busqueda && (
             <button
               type="button"
-              onClick={() => setMostrarForm(true)}
+              onClick={handleNuevo}
               className="text-sm text-[#f56523] font-medium hover:underline"
             >
               Registrar primera compra →
@@ -99,15 +130,31 @@ export default function Compras() {
           <div className="md:hidden space-y-3">
             {lista.map((c) => (
               <div key={c.id} className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex justify-between items-start gap-2 mb-1">
-                  <p className="font-semibold text-gray-800">{c.product?.name}</p>
-                  <span className="font-bold text-[#1a365d] text-sm shrink-0">{formatCOP(c.total)}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
-                  <span className="truncate">
-                    {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)} kg
-                  </span>
-                  <span className="shrink-0">{formatFechaCorta(c.date)}</span>
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEditar(c)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <div className="flex justify-between items-start gap-2 mb-1">
+                      <p className="font-semibold text-gray-800 truncate">{c.product?.name}</p>
+                      <span className="font-bold text-[#1a365d] text-sm shrink-0">
+                        {formatCOP(c.total)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
+                      <span className="truncate">
+                        {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)} kg
+                      </span>
+                      <span className="shrink-0">{formatFechaCorta(c.date)}</span>
+                    </div>
+                  </button>
+                  <AccionesRegistro
+                    etiqueta={c.product?.name}
+                    onEditar={() => handleEditar(c)}
+                    onEliminar={() => handleEliminar(c)}
+                    tamano="w-10 h-10"
+                  />
                 </div>
               </div>
             ))}
@@ -123,12 +170,15 @@ export default function Compras() {
                   <th className="text-right px-4 py-3">kg</th>
                   <th className="text-right px-4 py-3">$/kg</th>
                   <th className="text-right px-4 py-3">Total</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatFechaCorta(c.date)}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {formatFechaCorta(c.date)}
+                    </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{c.product?.name}</td>
                     <td className="px-4 py-3 text-gray-600">{c.supplier?.name}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
@@ -139,6 +189,13 @@ export default function Compras() {
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-[#1a365d] tabular-nums">
                       {formatCOP(c.total)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <AccionesRegistro
+                        etiqueta={c.product?.name}
+                        onEditar={() => handleEditar(c)}
+                        onEliminar={() => handleEliminar(c)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -162,8 +219,11 @@ export default function Compras() {
       )}
 
       {mostrarForm && (
-        <Modal titulo="Nueva compra" onClose={() => setMostrarForm(false)}>
-          <FormCompra onGuardado={handleGuardado} onCerrar={() => setMostrarForm(false)} />
+        <Modal
+          titulo={compraEditar ? `Editar: ${compraEditar.product?.name}` : 'Nueva compra'}
+          onClose={cerrarModal}
+        >
+          <FormCompra compra={compraEditar} onGuardado={handleGuardado} onCerrar={cerrarModal} />
         </Modal>
       )}
     </div>
