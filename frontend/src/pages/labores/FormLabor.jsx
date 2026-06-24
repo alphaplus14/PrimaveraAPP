@@ -17,16 +17,14 @@ export default function FormLabor({ onGuardado, onCerrar }) {
   const [error, setError] = useState(null)
   const [mostrarInsumos, setMostrarInsumos] = useState(false)
 
-  // Estado para crear insumo inline
-  const [pendingInsumo, setPendingInsumo] = useState(null) // { nombre, lineaId }
-  const [formInsumo, setFormInsumo] = useState({ type: 'other', unit_of_measure: '' })
+  const [pendingInsumo, setPendingInsumo] = useState(null) // { name, lineaId }
+  const [formInsumo, setFormInsumo] = useState({ type: 'other', unit: '' })
 
   const [form, setForm] = useState({
-    date: hoy(),
-    task_type: '',
-    tipoPersonalizado: false,
-    crop: '',
-    assigned_to: '',
+    date:        hoy(),
+    task_type:   '',
+    crop:        '',
+    responsible: '',
     description: '',
   })
   const [lineasInsumo, setLineasInsumo] = useState([lineaInsumoVacia()])
@@ -43,21 +41,21 @@ export default function FormLabor({ onGuardado, onCerrar }) {
   const agregarLinea = () => setLineasInsumo((prev) => [...prev, lineaInsumoVacia()])
   const eliminarLinea = (id) => setLineasInsumo((prev) => prev.filter((l) => l.id !== id))
 
-  const handleIniciarCrearInsumo = (nombre, lineaId) => {
-    setPendingInsumo({ nombre, lineaId })
-    setFormInsumo({ type: 'other', unit_of_measure: '' })
+  const handleIniciarCrearInsumo = (name, lineaId) => {
+    setPendingInsumo({ name, lineaId })
+    setFormInsumo({ type: 'other', unit: '' })
   }
 
   const handleConfirmarInsumo = async () => {
-    if (!formInsumo.unit_of_measure.trim()) {
+    if (!formInsumo.unit.trim()) {
       setError('Indica la unidad de medida del insumo (Ej: litros, kg, gramos).')
       return
     }
     try {
       const { data } = await crearInsumo({
-        name: pendingInsumo.nombre,
+        name: pendingInsumo.name,
         type: formInsumo.type,
-        unit_of_measure: formInsumo.unit_of_measure,
+        unit: formInsumo.unit,
       })
       const nuevo = data.data
       setInsumos((prev) => [...prev, nuevo])
@@ -74,7 +72,6 @@ export default function FormLabor({ onGuardado, onCerrar }) {
     if (!form.task_type.trim()) { setError('El tipo de labor es obligatorio.'); return }
 
     if (mostrarInsumos) {
-      const lineasValidas = lineasInsumo.filter((l) => l.supply_id && l.quantity_used)
       if (lineasInsumo.some((l) => (l.supply_id && !l.quantity_used) || (!l.supply_id && l.quantity_used))) {
         setError('Completa todos los campos de cada insumo o elimina las líneas vacías.')
         return
@@ -84,10 +81,10 @@ export default function FormLabor({ onGuardado, onCerrar }) {
     setGuardando(true)
     try {
       const payload = {
-        date: form.date,
-        task_type: form.task_type,
-        crop: form.crop || undefined,
-        assigned_to: form.assigned_to || undefined,
+        date:        form.date,
+        task_type:   form.task_type,
+        crop:        form.crop        || undefined,
+        responsible: form.responsible || undefined,
         description: form.description || undefined,
       }
 
@@ -95,7 +92,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         const lineasValidas = lineasInsumo.filter((l) => l.supply_id && l.quantity_used)
         if (lineasValidas.length > 0) {
           payload.supplies = lineasValidas.map((l) => ({
-            supply_id: l.supply_id,
+            supply_id:     l.supply_id,
             quantity_used: l.quantity_used,
           }))
         }
@@ -114,7 +111,6 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
   return (
     <div className="space-y-4">
-      {/* Fecha */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
@@ -137,10 +133,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         </div>
       </div>
 
-      {/* Tipo de labor */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de labor *</label>
-        {/* Chips de selección rápida */}
         <div className="flex flex-wrap gap-2 mb-2">
           {TIPOS_LABOR.map((t) => (
             <button
@@ -157,7 +151,6 @@ export default function FormLabor({ onGuardado, onCerrar }) {
             </button>
           ))}
         </div>
-        {/* Campo libre si eligió "Otro" o quiere personalizar */}
         {(form.task_type === 'Otro' || !tipoSeleccionado) && (
           <input
             type="text"
@@ -170,19 +163,17 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         )}
       </div>
 
-      {/* Responsable */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Responsable</label>
         <input
           type="text"
           placeholder="Nombre de quien realizó la labor"
-          value={form.assigned_to}
-          onChange={(e) => set('assigned_to', e.target.value)}
+          value={form.responsible}
+          onChange={(e) => set('responsible', e.target.value)}
           className={inputClass}
         />
       </div>
 
-      {/* Descripción */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Descripción (opcional)</label>
         <textarea
@@ -194,7 +185,6 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         />
       </div>
 
-      {/* Toggle de insumos */}
       <div>
         <label className="flex items-center gap-3 cursor-pointer">
           <div
@@ -214,7 +204,6 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         </label>
       </div>
 
-      {/* Líneas de insumos */}
       {mostrarInsumos && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -239,23 +228,21 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                 )}
               </div>
 
-              {/* Selector de insumo */}
               <SelectBuscable
                 opciones={insumos.map((i) => ({
                   value: i.id,
-                  label: `${i.name} (${i.unit_of_measure})`,
+                  label: `${i.name} (${i.unit})`,
                 }))}
                 value={linea.supply_id}
                 onChange={(v) => actualizarLinea(linea.id, 'supply_id', v)}
                 placeholder="Buscar insumo..."
-                onCrear={(nombre) => handleIniciarCrearInsumo(nombre, linea.id)}
+                onCrear={(name) => handleIniciarCrearInsumo(name, linea.id)}
               />
 
-              {/* Panel crear insumo inline */}
               {pendingInsumo?.lineaId === linea.id && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
                   <p className="text-xs font-semibold text-blue-700">
-                    Nuevo insumo: "{pendingInsumo.nombre}"
+                    Nuevo insumo: "{pendingInsumo.name}"
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -283,8 +270,8 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                         type="text"
                         autoFocus
                         placeholder="kg, litros, g..."
-                        value={formInsumo.unit_of_measure}
-                        onChange={(e) => setFormInsumo((f) => ({ ...f, unit_of_measure: e.target.value }))}
+                        value={formInsumo.unit}
+                        onChange={(e) => setFormInsumo((f) => ({ ...f, unit: e.target.value }))}
                         className={inputClass}
                       />
                     </div>
@@ -306,13 +293,12 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                 </div>
               )}
 
-              {/* Cantidad */}
               <div>
                 <label className="text-xs text-gray-400 mb-0.5 block">
                   Cantidad *
                   {linea.supply_id && (() => {
                     const ins = insumos.find((i) => String(i.id) === String(linea.supply_id))
-                    return ins ? <span className="ml-1 text-gray-300">({ins.unit_of_measure})</span> : null
+                    return ins ? <span className="ml-1 text-gray-300">({ins.unit})</span> : null
                   })()}
                 </label>
                 <input

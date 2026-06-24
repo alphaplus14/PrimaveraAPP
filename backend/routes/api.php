@@ -13,9 +13,13 @@ use App\Http\Controllers\Api\TransformacionController;
 use App\Http\Controllers\Api\InsumoController;
 use App\Http\Controllers\Api\LaborController;
 use App\Http\Controllers\Api\ReporteController;
+use App\Http\Controllers\Api\TwoFactorController;
 
 // Autenticación pública
 Route::post('/login', [AuthController::class, 'login']);
+
+// 2FA challenge (público, pero protegido por two_factor_token temporal en cache)
+Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge']);
 
 // Rutas protegidas con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -24,18 +28,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
+    // 2FA management
+    Route::get('/user/two-factor-status', [TwoFactorController::class, 'status']);
+    Route::post('/user/two-factor-authentication', [TwoFactorController::class, 'enable']);
+    Route::post('/user/confirmed-two-factor-authentication', [TwoFactorController::class, 'confirm']);
+    Route::delete('/user/two-factor-authentication', [TwoFactorController::class, 'disable']);
+    Route::get('/user/two-factor-recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
+    Route::post('/user/two-factor-recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes']);
+
     // Catálogo de productos
     Route::apiResource('productos', ProductoController::class);
 
     // Precios (historial por producto)
     Route::get('productos/{producto}/precios', [PrecioController::class, 'index']);
     Route::post('productos/{producto}/precios', [PrecioController::class, 'store']);
-    Route::get('productos/{producto}/precio-actual', [PrecioController::class, 'actual']);
+    Route::get('productos/{producto}/precio-actual', [PrecioController::class, 'current']);
 
     // Inventario
     Route::get('inventario', [InventarioController::class, 'index']);
     Route::get('inventario/{producto}', [InventarioController::class, 'show']);
-    Route::patch('inventario/{producto}/ajuste', [InventarioController::class, 'ajuste']);
+    Route::patch('inventario/{producto}/ajuste', [InventarioController::class, 'adjust']);
 
     // Proveedores y clientes
     Route::apiResource('proveedores', ProveedorController::class);

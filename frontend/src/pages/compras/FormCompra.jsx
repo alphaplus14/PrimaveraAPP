@@ -21,49 +21,46 @@ export default function FormCompra({ onGuardado, onCerrar }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-  // Estado para crear proveedor con tipo
-  const [pendingProveedor, setPendingProveedor] = useState(null) // { nombre } → espera tipo
+  const [pendingProveedor, setPendingProveedor] = useState(null)
   const [tipoProveedor, setTipoProveedor] = useState('neighbor')
 
   const [cabecera, setCabecera] = useState({
-    date: hoy(),
+    date:        hoy(),
     supplier_id: '',
-    notes: '',
+    notes:       '',
   })
   const [lineas, setLineas] = useState([lineaVacia()])
 
   useEffect(() => {
     Promise.all([getProductos(), getProveedores()]).then(([p, prov]) => {
-      setProductos(p.data.data.filter((x) => x.is_active))
-      setProveedores(prov.data.data.filter((x) => x.is_active))
+      setProductos(p.data.data.filter((x) => x.active))
+      setProveedores(prov.data.data.filter((x) => x.active))
     })
   }, [])
 
-  const actualizarLinea = (id, campo, valor) => {
-    setLineas((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l))
-    )
-  }
+  const actualizarLinea = (id, campo, valor) =>
+    setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
 
   const agregarLinea = () => setLineas((prev) => [...prev, lineaVacia()])
   const eliminarLinea = (id) => setLineas((prev) => prev.filter((l) => l.id !== id))
 
-  const totalGeneral = lineas.reduce((sum, l) => {
-    return sum + (l.quantity_kg && l.unit_price
+  const totalGeneral = lineas.reduce((sum, l) =>
+    sum + (l.quantity_kg && l.unit_price
       ? Number(l.quantity_kg) * Number(l.unit_price)
-      : 0)
-  }, 0)
+      : 0), 0)
 
-  // Se llama cuando SelectBuscable dispara "Crear X"
-  const handleIniciarCrearProveedor = (nombre) => {
-    setPendingProveedor({ nombre })
+  const handleIniciarCrearProveedor = (name) => {
+    setPendingProveedor({ name })
     setTipoProveedor('neighbor')
   }
 
   const handleConfirmarProveedor = async () => {
-    if (!pendingProveedor?.nombre.trim()) return
+    if (!pendingProveedor?.name.trim()) return
     try {
-      const { data } = await crearProveedor({ name: pendingProveedor.nombre, type: tipoProveedor })
+      const { data } = await crearProveedor({
+        name: pendingProveedor.name,
+        type: tipoProveedor,
+      })
       setProveedores((prev) => [...prev, data.data])
       setCabecera((c) => ({ ...c, supplier_id: String(data.data.id) }))
       setPendingProveedor(null)
@@ -74,7 +71,6 @@ export default function FormCompra({ onGuardado, onCerrar }) {
 
   const handleSubmit = async () => {
     setError(null)
-
     if (!cabecera.supplier_id) { setError('Selecciona un proveedor.'); return }
     if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
       setError('Completa todos los campos de cada línea.')
@@ -86,12 +82,12 @@ export default function FormCompra({ onGuardado, onCerrar }) {
       await Promise.all(
         lineas.map((l) =>
           crearCompra({
-            date: cabecera.date,
+            date:        cabecera.date,
             supplier_id: cabecera.supplier_id,
-            notes: cabecera.notes,
-            product_id: l.product_id,
+            notes:       cabecera.notes,
+            product_id:  l.product_id,
             quantity_kg: l.quantity_kg,
-            unit_price: l.unit_price,
+            unit_price:  l.unit_price,
           })
         )
       )
@@ -105,7 +101,6 @@ export default function FormCompra({ onGuardado, onCerrar }) {
 
   return (
     <div className="space-y-4">
-      {/* Cabecera */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
@@ -126,25 +121,24 @@ export default function FormCompra({ onGuardado, onCerrar }) {
             placeholder="Buscar proveedor..."
             onCrear={handleIniciarCrearProveedor}
           />
-          {/* Panel inline para elegir tipo al crear proveedor */}
           {pendingProveedor && (
             <div className="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
               <p className="text-xs font-medium text-blue-700">
-                Tipo de proveedor: <span className="font-bold">"{pendingProveedor.nombre}"</span>
+                Tipo de proveedor: <span className="font-bold">"{pendingProveedor.name}"</span>
               </p>
               <div className="flex rounded-lg overflow-hidden border border-gray-300">
-                {['neighbor', 'market', 'other'].map((t) => (
+                {[['neighbor', 'Vecino'], ['market', 'Galería'], ['other', 'Otro']].map(([v, l]) => (
                   <button
-                    key={t}
+                    key={v}
                     type="button"
-                    onClick={() => setTipoProveedor(t)}
-                    className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
-                      tipoProveedor === t
+                    onClick={() => setTipoProveedor(v)}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      tipoProveedor === v
                         ? 'bg-[#1a365d] text-white'
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
-                    {t === 'market' ? 'Galería' : t === 'neighbor' ? 'Vecino' : 'Otro'}
+                    {l}
                   </button>
                 ))}
               </div>
@@ -167,7 +161,6 @@ export default function FormCompra({ onGuardado, onCerrar }) {
         </div>
       </div>
 
-      {/* Líneas de productos */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Productos</label>
@@ -234,7 +227,6 @@ export default function FormCompra({ onGuardado, onCerrar }) {
         ))}
       </div>
 
-      {/* Total */}
       {totalGeneral > 0 && (
         <div className="bg-[#1a365d] text-white rounded-xl px-4 py-3 flex justify-between items-center">
           <span className="text-sm font-medium opacity-80">Total compra</span>
@@ -242,7 +234,6 @@ export default function FormCompra({ onGuardado, onCerrar }) {
         </div>
       )}
 
-      {/* Observaciones */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Observaciones (opcional)</label>
         <input

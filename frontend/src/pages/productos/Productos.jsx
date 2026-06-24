@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { getProductos } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
+import Buscador from '../../components/ui/Buscador'
+import Paginacion from '../../components/ui/Paginacion'
 import FormProducto from './FormProducto'
 import { CATEGORY_LABEL, CATEGORY_BADGE } from '../../constants/enums'
 
@@ -17,7 +19,7 @@ export default function Productos() {
   const [productoEditar, setProductoEditar] = useState(null)
 
   const { data, cargando, recargar } = useApi(getProductos)
-  const todos = data?.data ?? data ?? []
+  const todos = data ?? []
 
   const lista = useMemo(
     () =>
@@ -149,11 +151,11 @@ export default function Productos() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-gray-400">
-                      {p.is_fruit_for_pulp ? '✓' : '—'}
+                      {p.is_pulp_fruit ? '✓' : '—'}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                      {p.inventario
-                        ? Number(p.inventario.quantity_kg).toLocaleString('es-CO', {
+                      {p.inventory
+                        ? Number(p.inventory.quantity_kg).toLocaleString('es-CO', {
                             maximumFractionDigits: 1,
                           })
                         : '—'}
@@ -161,10 +163,10 @@ export default function Productos() {
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          p.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
+                          p.active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
                         }`}
                       >
-                        {p.is_active ? 'Activo' : 'Inactivo'}
+                        {p.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -184,6 +186,7 @@ export default function Productos() {
             porPagina={POR_PAGINA}
             inicio={inicio}
             filtrado={filtro !== 'todos' || !!busqueda}
+            sustantivo="producto"
             onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
             onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
           />
@@ -208,48 +211,6 @@ export default function Productos() {
           />
         </Modal>
       )}
-    </div>
-  )
-}
-
-function Buscador({ value, onChange, className = '' }) {
-  return (
-    <div className={`relative ${className}`}>
-      <svg
-        className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        aria-hidden
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
-      <input
-        type="search"
-        placeholder="Buscar producto..."
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#f56523] focus:border-transparent"
-        autoComplete="off"
-      />
-      <button
-        type="button"
-        onClick={() => onChange('')}
-        tabIndex={value ? 0 : -1}
-        aria-label="Limpiar búsqueda"
-        className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors ${
-          value ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
     </div>
   )
 }
@@ -282,10 +243,10 @@ function FilaProductoMovil({ producto: p, onEditar }) {
             >
               {CATEGORY_LABEL[p.category]}
             </span>
-            {!p.is_active && (
+            {!p.active && (
               <span className="text-xs text-gray-400">Inactivo</span>
             )}
-            {p.is_fruit_for_pulp && (
+            {p.is_pulp_fruit && (
               <span className="text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Pulpa</span>
             )}
           </div>
@@ -293,63 +254,14 @@ function FilaProductoMovil({ producto: p, onEditar }) {
           <p className="text-xs text-gray-400 mt-0.5">
             Stock:{' '}
             <span className="font-medium text-gray-600 tabular-nums">
-              {p.inventario
-                ? `${Number(p.inventario.quantity_kg).toFixed(1)} kg`
+              {p.inventory
+                ? `${Number(p.inventory.quantity_kg).toFixed(1)} kg`
                 : '—'}
             </span>
           </p>
         </button>
         <BotonEditar producto={p} onClick={() => onEditar(p)} className="w-10 h-10 shrink-0" />
       </div>
-    </div>
-  )
-}
-
-function Paginacion({
-  pagina,
-  totalPaginas,
-  total,
-  totalGeneral,
-  porPagina,
-  inicio,
-  filtrado,
-  onAnterior,
-  onSiguiente,
-}) {
-  const fin = Math.min(inicio + porPagina, total)
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
-      <p className="text-xs text-gray-400 text-center sm:text-left">
-        {totalPaginas > 1
-          ? `Mostrando ${inicio + 1}–${fin} de ${total} producto${total !== 1 ? 's' : ''}`
-          : `${total} producto${total !== 1 ? 's' : ''}`}
-        {filtrado ? ` (filtrado de ${totalGeneral})` : ''}
-      </p>
-
-      {totalPaginas > 1 && (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={pagina <= 1}
-            onClick={onAnterior}
-            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
-          >
-            Anterior
-          </button>
-          <span className="text-xs text-gray-500 min-w-28 text-center">
-            Página {pagina} de {totalPaginas}
-          </span>
-          <button
-            type="button"
-            disabled={pagina >= totalPaginas}
-            onClick={onSiguiente}
-            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 transition-colors"
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
     </div>
   )
 }

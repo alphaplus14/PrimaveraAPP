@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->enum('type', ['retail', 'wholesale']);
-            $table->decimal('amount', 10, 2);
-            $table->date('effective_from');
+            $table->decimal('value', 10, 2);
+            $table->date('valid_from');
             $table->timestamps();
 
-            $table->index(['product_id', 'type', 'effective_from']);
+            $table->index(['product_id', 'type', 'valid_from']);
         });
     }
 

@@ -19,12 +19,12 @@ class LaborInsumo extends Model
         'quantity_used' => 'decimal:3',
     ];
 
-    public function labor(): BelongsTo
+    public function farmTask(): BelongsTo
     {
         return $this->belongsTo(Labor::class, 'farm_task_id');
     }
 
-    public function insumo(): BelongsTo
+    public function supply(): BelongsTo
     {
         return $this->belongsTo(Insumo::class, 'supply_id');
     }

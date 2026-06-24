@@ -20,10 +20,10 @@ class MovimientoInventario extends Model
 
     protected $casts = [
         'quantity_kg' => 'decimal:3',
-        'date' => 'date',
+        'date'        => 'date',
     ];
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
     }

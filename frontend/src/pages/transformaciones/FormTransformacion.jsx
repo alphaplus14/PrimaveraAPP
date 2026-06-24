@@ -26,8 +26,8 @@ export default function FormTransformacion({ onGuardado, onCerrar }) {
   useEffect(() => {
     Promise.all([getProductos(), getInventario()]).then(([p, inv]) => {
       const todos = p.data.data
-      setFrutas(todos.filter((x) => x.is_active && x.is_fruit_for_pulp))
-      setPulpas(todos.filter((x) => x.is_active && x.category === 'pulp'))
+      setFrutas(todos.filter((x) => x.active && x.is_pulp_fruit))
+      setPulpas(todos.filter((x) => x.active && x.category === 'pulp'))
       setInventario(inv.data.data)
     })
   }, [])

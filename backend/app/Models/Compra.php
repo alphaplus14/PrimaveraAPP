@@ -20,18 +20,18 @@ class Compra extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date'       => 'date',
         'quantity_kg' => 'decimal:3',
-        'unit_price' => 'decimal:2',
-        'total' => 'decimal:2',
+        'unit_price'  => 'decimal:2',
+        'total'       => 'decimal:2',
     ];
 
-    public function proveedor(): BelongsTo
+    public function supplier(): BelongsTo
     {
         return $this->belongsTo(Proveedor::class, 'supplier_id');
     }
 
-    public function producto(): BelongsTo
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
     }

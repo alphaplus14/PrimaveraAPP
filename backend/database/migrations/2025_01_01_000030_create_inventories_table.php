@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('inventories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->unique()->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->unique()->constrained('products')->cascadeOnDelete();
             $table->decimal('quantity_kg', 10, 3)->default(0);
-            $table->timestamp('quantity_updated_at')->nullable();
+            $table->timestamp('stock_updated_at')->nullable();
             $table->timestamps();
         });
     }

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FLUX } from '../lib/dashboard'
+import Modal from './ui/Modal'
+import TwoFactorSetup from './TwoFactorSetup'
 
 const nav = [
   { to: '/',                  label: 'Dashboard',        icon: '/assets/icons/dashboard%20icon.png' },
@@ -57,6 +59,7 @@ export default function Layout() {
   const { user, cerrarSesion } = useAuth()
   const navigate = useNavigate()
 
+  const [mostrarSeguridad, setMostrarSeguridad] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(STORAGE_SIDEBAR) === 'true',
   )
@@ -148,14 +151,30 @@ export default function Layout() {
 
         <button
           type="button"
+          onClick={() => setMostrarSeguridad(true)}
+          title="Seguridad / 2FA"
+          className={`mx-3 mb-1 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
+            sidebarCollapsed ? 'px-2 text-center' : 'text-left px-3'
+          }`}
+        >
+          {sidebarCollapsed ? '🔐' : '🔐 Seguridad'}
+        </button>
+        <button
+          type="button"
           onClick={handleLogout}
           title="Cerrar sesión"
-          className={`m-3 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
+          className={`m-3 mt-0 text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors ${
             sidebarCollapsed ? 'px-2 text-center' : 'text-left px-3'
           }`}
         >
           {sidebarCollapsed ? '⎋' : 'Cerrar sesión'}
         </button>
+
+        {mostrarSeguridad && (
+          <Modal titulo="Seguridad de la cuenta" onClose={() => setMostrarSeguridad(false)}>
+            <TwoFactorSetup />
+          </Modal>
+        )}
       </aside>
 
       {/* Contenido principal */}

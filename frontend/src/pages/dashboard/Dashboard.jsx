@@ -32,18 +32,18 @@ export default function Dashboard() {
   const [ventasSemanal, setVentasSemanal] = useState([])
   const [cargando, setCargando] = useState(true)
   const [cargandoGrafico, setCargandoGrafico] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(null)
   const [modalStock, setModalStock] = useState(false)
   const [detalleStock, setDetalleStock] = useState(null)
   const [detalleVenta, setDetalleVenta] = useState(null)
-  const [errorCarga, setErrorCarga] = useState(null)
 
   useEffect(() => {
     getResumenHoy()
       .then(([ventasRes, comprasRes, invRes, prodRes]) => {
-        const ventas = ventasRes.data.data ?? []
-        const compras = comprasRes.data.data ?? []
-        const inventario = invRes.data.data ?? []
-        const productos = prodRes.data.data ?? []
+        const ventas = ventasRes.data?.data ?? []
+        const compras = comprasRes.data?.data ?? []
+        const inventario = invRes.data?.data ?? []
+        const productos = prodRes.data?.data ?? []
         const stockBajo = filtrarStockBajo(inventario)
 
         setDatos({
@@ -51,7 +51,7 @@ export default function Dashboard() {
           ventasKgHoy: ventas.reduce((s, v) => s + Number(v.quantity_kg), 0),
           comprasHoy: compras.reduce((s, c) => s + Number(c.total), 0),
           comprasKgHoy: compras.reduce((s, c) => s + Number(c.quantity_kg), 0),
-          productosActivos: productos.filter((p) => p.is_active).length,
+          productosActivos: productos.filter((p) => p.active).length,
           stockBajo,
           ventasHoyLista: [...ventas].sort((a, b) => b.id - a.id),
         })
@@ -82,7 +82,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 min-h-full bg-[#F8F9FA]">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} 👋</h2>
+        <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} </h2>
         <p className="text-slate-400 text-sm capitalize">{hoy}</p>
       </div>
 
@@ -222,13 +222,13 @@ export default function Dashboard() {
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-xs text-gray-400">Producto</p>
-              <p className="font-semibold text-gray-900">{detalleStock.producto?.name}</p>
+              <p className="font-semibold text-gray-900">{detalleStock.product?.name}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-gray-400">Categoría</p>
                 <p className="font-medium text-gray-700">
-                  {CATEGORY_LABEL[detalleStock.producto?.category] ?? '—'}
+                  {CATEGORY_LABEL[detalleStock.product?.category] ?? '—'}
                 </p>
               </div>
               <div>
@@ -242,11 +242,11 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            {detalleStock.quantity_updated_at && (
+            {detalleStock.stock_updated_at && (
               <div>
                 <p className="text-xs text-gray-400">Última actualización</p>
                 <p className="text-gray-600">
-                  {new Date(detalleStock.quantity_updated_at).toLocaleString('es-CO')}
+                  {new Date(detalleStock.stock_updated_at).toLocaleString('es-CO')}
                 </p>
               </div>
             )}
@@ -269,12 +269,12 @@ export default function Dashboard() {
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-xs text-gray-400">Producto</p>
-              <p className="font-semibold text-gray-900">{detalleVenta.producto?.name}</p>
+              <p className="font-semibold text-gray-900">{detalleVenta.product?.name}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-gray-400">Cliente</p>
-                <p className="font-medium text-gray-700">{detalleVenta.cliente?.name ?? '—'}</p>
+                <p className="font-medium text-gray-700">{detalleVenta.customer?.name ?? '—'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400">Fecha</p>
@@ -323,16 +323,16 @@ function FilaStockBajo({ item, onVer, enModal = false }) {
   const contenido = (
     <>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">{item.producto?.name}</p>
+        <p className="text-sm font-medium text-slate-800 truncate">{item.product?.name}</p>
         <p className="text-xs text-slate-400">
           <span className={critico ? 'text-rose-500 font-medium' : 'text-[#F59E0B] font-medium'}>
             {formatKg(item.quantity_kg)}
           </span>
           {' · '}
-          {CATEGORY_LABEL[item.producto?.category] ?? item.producto?.category}
+          {CATEGORY_LABEL[item.product?.category] ?? item.product?.category}
         </p>
       </div>
-      <BotonOjo onClick={onVer} label={`Ver ${item.producto?.name}`} />
+      <BotonOjo onClick={onVer} label={`Ver ${item.product?.name}`} />
     </>
   )
 
@@ -353,16 +353,16 @@ function FilaVentaDia({ venta, onVer }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-[#F3F0FF]/40 transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">{venta.producto?.name}</p>
+        <p className="text-sm font-medium text-slate-800 truncate">{venta.product?.name}</p>
         <p className="text-xs text-slate-400 truncate">
-          {venta.cliente?.name} · {formatKg(venta.quantity_kg)}
+          {venta.customer?.name} · {formatKg(venta.quantity_kg)}
         </p>
       </div>
       <div className="text-right shrink-0 mr-1 hidden sm:block">
         <p className="text-xs font-semibold text-[#10B981]">{formatCOP(venta.total)}</p>
         <p className="text-[10px] text-slate-400">{tiempoRelativo(venta.date)}</p>
       </div>
-      <BotonOjo onClick={onVer} label={`Ver venta de ${venta.producto?.name}`} />
+      <BotonOjo onClick={onVer} label={`Ver venta de ${venta.product?.name}`} />
     </div>
   )
 }
