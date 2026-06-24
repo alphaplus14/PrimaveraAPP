@@ -13,7 +13,7 @@ return new class extends Migration
             $table->unsignedInteger('pulp_quantity_packages')->default(0)->after('pulp_product_id');
         });
 
-        DB::table('products')->where('category', 'pulp')->update(['unit_of_measure' => 'paquete']);
+        DB::table('products')->where('category', 'pulp')->update(['unit' => 'paquete']);
     }
 
     public function down(): void
@@ -22,6 +22,6 @@ return new class extends Migration
             $table->dropColumn('pulp_quantity_packages');
         });
 
-        DB::table('products')->where('category', 'pulp')->update(['unit_of_measure' => 'kg']);
+        DB::table('products')->where('category', 'pulp')->update(['unit' => 'kg']);
     }
 };
