@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import Swal from 'sweetalert2'
 import { getTransformaciones } from '../../api/transformaciones'
 import Modal from '../../components/ui/Modal'
+import Buscador from '../../components/ui/Buscador'
+import Paginacion from '../../components/ui/Paginacion'
 import FormTransformacion from './FormTransformacion'
+import { formatFechaCorta } from '../../lib/dashboard'
+
+const POR_PAGINA = 15
 
 const hoy = () => new Date().toISOString().split('T')[0]
 const inicioMes = () => {
@@ -19,8 +23,7 @@ export default function Transformaciones() {
   const [desde, setDesde] = useState(inicioMes())
   const [hasta, setHasta] = useState(hoy())
   const [filtroActivo, setFiltroActivo] = useState(false)
-  const [perPage, setPerPage] = useState(10)
-  const [pagina, setPagina] = useState(1)
+  const [errorFiltro, setErrorFiltro] = useState(null)
 
   const [lista, setLista] = useState([])
   const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
@@ -29,8 +32,11 @@ export default function Transformaciones() {
   const cargar = useCallback(async (page = 1) => {
     setCargando(true)
     try {
-      const params = { page, per_page: perPage }
-      if (filtroActivo) { params.desde = desde; params.hasta = hasta }
+      const params = { page, per_page: POR_PAGINA }
+      if (filtroActivo) {
+        params.desde = desde
+        params.hasta = hasta
+      }
       if (busqueda.trim()) params.busqueda = busqueda.trim()
       const res = await getTransformaciones(params)
       const paginado = res.data
@@ -40,15 +46,17 @@ export default function Transformaciones() {
         lastPage: paginado.last_page ?? 1,
         total: paginado.total ?? 0,
       })
-      setPagina(paginado.current_page ?? 1)
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error al cargar transformaciones', confirmButtonColor: '#6366F1' })
+      setLista([])
+      setMeta({ currentPage: 1, lastPage: 1, total: 0 })
     } finally {
       setCargando(false)
     }
-  }, [filtroActivo, desde, hasta, busqueda, perPage])
+  }, [filtroActivo, desde, hasta, busqueda])
 
-  useEffect(() => { cargar(1) }, [cargar])
+  useEffect(() => {
+    cargar(1)
+  }, [cargar])
 
   const handleGuardado = () => {
     setMostrarForm(false)
@@ -57,9 +65,10 @@ export default function Transformaciones() {
 
   const aplicarFiltro = () => {
     if (!desde || !hasta) {
-      Swal.fire({ icon: 'warning', title: 'Selecciona ambas fechas', confirmButtonColor: '#6366F1' })
+      setErrorFiltro('Selecciona ambas fechas.')
       return
     }
+    setErrorFiltro(null)
     setFiltroActivo(true)
   }
 
@@ -68,153 +77,113 @@ export default function Transformaciones() {
     setDesde(inicioMes())
     setHasta(hoy())
     setBusqueda('')
+    setErrorFiltro(null)
   }
 
-  const irAPagina = (p) => {
-    if (p < 1 || p > meta.lastPage) return
-    cargar(p)
-  }
-
-  const pageNumbers = () => {
-    const pages = []
-    const start = Math.max(1, meta.currentPage - 2)
-    const end = Math.min(meta.lastPage, meta.currentPage + 2)
-    for (let i = start; i <= end; i++) pages.push(i)
-    return pages
-  }
+  const inicio = (meta.currentPage - 1) * POR_PAGINA
+  const hayFiltros = !!busqueda.trim() || filtroActivo
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 min-h-full bg-[#F8F9FA]">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-            <img
-              src="/assets/icons/transformaciones%20icon.png"
-              alt=""
-              className="w-6 h-6 object-contain opacity-80"
-            />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800">Transformaciones</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Fruta → Pulpa</p>
-          </div>
+    <div className="p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-[#1a365d]">Transformaciones</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Fruta → pulpa</p>
         </div>
-        <button
-          onClick={() => setMostrarForm(true)}
-          className="bg-[#6366F1] text-white text-sm px-4 py-2.5 rounded-xl font-medium hover:bg-[#5C27FE] transition-colors shadow-sm"
-        >
-          + Nueva
-        </button>
-      </div>
-
-      {/* Stat card */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        <div className="rounded-2xl p-4 border border-indigo-100 bg-white shadow-sm">
-          <span className="text-xs font-medium text-slate-500">Total registros</span>
-          <p className="text-2xl font-bold text-[#5C27FE] leading-tight mt-1">{meta.total}</p>
-          <p className="text-xs text-indigo-400 mt-1">transformaciones</p>
-        </div>
-        <div className="rounded-2xl p-4 border border-emerald-100 bg-white shadow-sm">
-          <span className="text-xs font-medium text-slate-500">Esta página</span>
-          <p className="text-2xl font-bold text-[#10B981] leading-tight mt-1">{lista.length}</p>
-          <p className="text-xs text-emerald-400 mt-1">registros visibles</p>
-        </div>
-        <div className="hidden sm:block rounded-2xl p-4 border border-amber-100 bg-white shadow-sm">
-          <span className="text-xs font-medium text-slate-500">Paquetes este mes</span>
-          <p className="text-2xl font-bold text-[#F59E0B] leading-tight mt-1">
-            {lista.reduce((s, t) => s + (t.pulp_quantity_packages ?? 0), 0)}
-          </p>
-          <p className="text-xs text-amber-400 mt-1">en vista actual</p>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4 space-y-3">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Buscar por fruta o pulpa..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && cargar(1)}
-            className={`${inputClass} flex-1`}
-          />
-          <select
-            value={perPage}
-            onChange={(e) => setPerPage(Number(e.target.value))}
-            className="border border-slate-200 rounded-xl px-2 py-2.5 text-sm bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-          >
-            <option value={5}>5/pág</option>
-            <option value={10}>10/pág</option>
-            <option value={25}>25/pág</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            className={`${inputClass} flex-1`}
-          />
-          <span className="text-slate-300 text-sm shrink-0">→</span>
-          <input
-            type="date"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            className={`${inputClass} flex-1`}
-          />
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-gray-400 hidden sm:inline">
+            {meta.total} transformación{meta.total !== 1 ? 'es' : ''}
+          </span>
           <button
-            onClick={aplicarFiltro}
-            className="shrink-0 px-3 py-2.5 bg-[#6366F1] text-white rounded-xl text-sm font-medium hover:bg-[#5C27FE] transition-colors"
+            type="button"
+            onClick={() => setMostrarForm(true)}
+            className="bg-[#f56523] text-white text-sm px-4 py-2.5 rounded-xl font-medium hover:bg-[#d9541a] transition-colors"
           >
-            Filtrar
+            + Nueva
           </button>
-          {filtroActivo && (
-            <button
-              onClick={limpiarFiltro}
-              className="shrink-0 px-3 py-2.5 border border-slate-200 text-slate-400 rounded-xl text-sm hover:bg-slate-50 transition-colors"
-            >
-              ✕
-            </button>
-          )}
         </div>
+      </div>
 
+      <Buscador
+        value={busqueda}
+        onChange={setBusqueda}
+        placeholder="Buscar por fruta o pulpa..."
+        className="mb-3"
+      />
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <input
+          type="date"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          className={inputClass}
+          aria-label="Desde"
+        />
+        <span className="text-gray-300 text-sm shrink-0">—</span>
+        <input
+          type="date"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          className={inputClass}
+          aria-label="Hasta"
+        />
+        <button
+          type="button"
+          onClick={aplicarFiltro}
+          className="shrink-0 px-3 py-2.5 bg-[#1a365d] text-white rounded-xl text-sm font-medium hover:bg-[#152c4d] transition-colors"
+        >
+          Filtrar fechas
+        </button>
         {filtroActivo && (
-          <p className="text-xs text-indigo-500 font-medium">
-            Filtrando: {desde} → {hasta}
-          </p>
+          <button
+            type="button"
+            onClick={limpiarFiltro}
+            className="shrink-0 px-3 py-2.5 border border-gray-200 text-gray-500 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+          >
+            Limpiar
+          </button>
         )}
       </div>
 
-      {/* Contenido */}
+      {errorFiltro && (
+        <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+          {errorFiltro}
+        </p>
+      )}
+
+      {filtroActivo && !errorFiltro && (
+        <p className="text-xs text-gray-400 mb-4 -mt-2">
+          Mostrando del {formatFechaCorta(desde)} al {formatFechaCorta(hasta)}
+        </p>
+      )}
+
       {cargando ? (
         <div className="space-y-3">
-          {[...Array(perPage)].map((_, i) => (
-            <div key={i} className="h-20 bg-slate-100 rounded-2xl animate-pulse" />
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : lista.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-4">
-            <img src="/assets/icons/transformaciones%20icon.png" alt="" className="w-9 h-9 object-contain opacity-60" />
-          </div>
-          {busqueda || filtroActivo ? (
-            <>
-              <p className="text-sm text-slate-500 mb-1">Sin resultados para este filtro.</p>
-              <button onClick={limpiarFiltro} className="text-sm text-indigo-500 font-medium hover:underline mt-2">
-                Limpiar filtros
-              </button>
-            </>
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+          <p className="text-4xl mb-3">🧃</p>
+          <p className="text-sm mb-1">
+            {hayFiltros ? 'Sin resultados para este filtro.' : 'No hay transformaciones registradas.'}
+          </p>
+          {hayFiltros ? (
+            <button
+              type="button"
+              onClick={limpiarFiltro}
+              className="text-sm text-[#f56523] font-medium hover:underline mt-2"
+            >
+              Limpiar filtros
+            </button>
           ) : (
             <>
-              <p className="text-sm font-semibold text-slate-600 mb-1">No hay transformaciones registradas</p>
-              <p className="text-xs text-slate-400 mb-4">Convierte fruta en pulpa y el inventario se actualiza solo.</p>
+              <p className="text-xs mb-4">Convierte fruta en pulpa y el inventario se actualiza solo.</p>
               <button
+                type="button"
                 onClick={() => setMostrarForm(true)}
-                className="text-sm text-[#6366F1] font-medium hover:underline"
+                className="text-sm text-[#f56523] font-medium hover:underline"
               >
                 Registrar primera transformación →
               </button>
@@ -223,130 +192,95 @@ export default function Transformaciones() {
         </div>
       ) : (
         <>
-          {/* Móvil: tarjetas */}
           <div className="md:hidden space-y-3">
             {lista.map((t) => (
-              <div key={t.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-base">🌿</span>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{t.source_product?.name}</p>
-                      <p className="text-xs text-slate-400">{Number(t.fruit_quantity_kg).toFixed(1)} kg entrada</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-slate-400 shrink-0 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">{t.date}</span>
-                </div>
-
-                <div className="flex items-center gap-1 ml-1 mb-3">
-                  <div className="flex-1 h-px bg-slate-100" />
-                  <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <div className="flex-1 h-px bg-slate-100" />
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-base">🧃</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{t.pulp_product?.name}</p>
-                    <p className="text-xs text-slate-400">
-                      {t.pulp_quantity_packages} paquetes · {kgPorPaquete(Number(t.fruit_quantity_kg), t.pulp_quantity_packages)} kg/paq
+              <div key={t.id} className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">
+                      {t.source_product?.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      → {t.pulp_product?.name}
                     </p>
                   </div>
-                  <span className="text-xs font-bold text-[#6366F1] bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-lg shrink-0">
-                    {t.pulp_quantity_packages} paq
+                  <span className="text-xs text-gray-400 shrink-0">
+                    {formatFechaCorta(t.date)}
                   </span>
                 </div>
-
+                <div className="flex justify-between items-center text-xs gap-2">
+                  <span className="text-gray-500">
+                    {Number(t.fruit_quantity_kg).toFixed(1)} kg fruta
+                  </span>
+                  <span className="font-semibold text-[#f56523]">
+                    {t.pulp_quantity_packages} paq
+                    <span className="font-normal text-gray-400 ml-1">
+                      · {kgPorPaquete(Number(t.fruit_quantity_kg), t.pulp_quantity_packages)} kg/paq
+                    </span>
+                  </span>
+                </div>
                 {t.notes && (
-                  <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-50 italic">"{t.notes}"</p>
+                  <p className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100 truncate">
+                    {t.notes}
+                  </p>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Desktop: tabla */}
-          <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-400 text-xs uppercase border-b border-slate-100">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-3">Fecha</th>
                   <th className="text-left px-4 py-3">Fruta</th>
                   <th className="text-right px-4 py-3">kg entrada</th>
                   <th className="text-left px-4 py-3">Pulpa</th>
                   <th className="text-right px-4 py-3">Paquetes</th>
-                  <th className="text-right px-4 py-3">kg/paquete</th>
+                  <th className="text-right px-4 py-3">kg/paq</th>
                   <th className="text-left px-4 py-3">Notas</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-gray-100">
                 {lista.map((t) => (
-                  <tr key={t.id} className="hover:bg-[#F3F0FF]/40 transition-colors">
-                    <td className="px-4 py-3 text-slate-400 whitespace-nowrap text-xs">{t.date}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 text-green-700 font-medium">
-                        🌿 {t.source_product?.name}
-                      </span>
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {formatFechaCorta(t.date)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {t.source_product?.name}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {Number(t.fruit_quantity_kg).toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 text-orange-600 font-medium">
-                        🧃 {t.pulp_product?.name}
-                      </span>
+                    <td className="px-4 py-3 text-gray-800">{t.pulp_product?.name}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-medium text-[#f56523]">
+                      {t.pulp_quantity_packages}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="inline-block bg-indigo-50 border border-indigo-100 text-[#6366F1] font-bold text-xs px-2.5 py-1 rounded-full">
-                        {t.pulp_quantity_packages} paq
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-600 tabular-nums">
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {kgPorPaquete(Number(t.fruit_quantity_kg), t.pulp_quantity_packages)}
                     </td>
-                    <td className="px-4 py-3 text-slate-400 text-xs max-w-xs truncate">{t.notes ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">
+                      {t.notes ?? '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Paginación */}
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-xs text-slate-400">
-              {meta.total} registro{meta.total !== 1 ? 's' : ''} · página {meta.currentPage} de {meta.lastPage}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => irAPagina(meta.currentPage - 1)}
-                disabled={meta.currentPage === 1}
-                className="px-2.5 py-1.5 rounded-xl text-sm border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                ‹
-              </button>
-              {pageNumbers().map((p) => (
-                <button
-                  key={p}
-                  onClick={() => irAPagina(p)}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                    p === meta.currentPage
-                      ? 'bg-[#6366F1] text-white shadow-sm'
-                      : 'border border-slate-200 text-slate-500 hover:bg-[#F3F0FF]'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                onClick={() => irAPagina(meta.currentPage + 1)}
-                disabled={meta.currentPage === meta.lastPage}
-                className="px-2.5 py-1.5 rounded-xl text-sm border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                ›
-              </button>
-            </div>
-          </div>
+          <Paginacion
+            pagina={meta.currentPage}
+            totalPaginas={meta.lastPage}
+            total={meta.total}
+            totalGeneral={meta.total}
+            porPagina={POR_PAGINA}
+            inicio={inicio}
+            filtrado={hayFiltros}
+            sustantivo="transformación"
+            onAnterior={() => cargar(meta.currentPage - 1)}
+            onSiguiente={() => cargar(meta.currentPage + 1)}
+          />
         </>
       )}
 
@@ -359,4 +293,5 @@ export default function Transformaciones() {
   )
 }
 
-const inputClass = 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white'
+const inputClass =
+  'border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#f56523] focus:border-transparent'

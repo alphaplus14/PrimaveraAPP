@@ -25,6 +25,17 @@ class Producto extends Model
         'is_pulp_fruit' => 'boolean',
     ];
 
+    /** Inventario de pulpas se lleva en paquetes; el resto en kg. */
+    public function usesPackages(): bool
+    {
+        return $this->category === 'pulp' || $this->unit === 'paquete';
+    }
+
+    public function stockUnit(): string
+    {
+        return $this->usesPackages() ? 'paquete' : ($this->unit ?? 'kg');
+    }
+
     public function relatedPulp(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'related_pulp_id');

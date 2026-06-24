@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Inventario;
 use App\Models\Producto;
 use App\Models\Proveedor;
+use App\Support\ProductPulpLinker;
 use Illuminate\Database\Seeder;
 
 class ProductoSeeder extends Seeder
@@ -28,12 +29,8 @@ class ProductoSeeder extends Seeder
 
         $purchasedPulps = ['Mora (pulpa)', 'Guanábana (pulpa)', 'Maracuyá (pulpa)'];
 
-        $pulpFruits = ['Guayaba ácida', 'Tomate de árbol', 'Guayaba dulce', 'Lulo'];
-
-        $ownPulpNames = [
-            'Pulpa guayaba ácida', 'Pulpa tomate de árbol',
-            'Pulpa guayaba dulce', 'Pulpa lulo',
-        ];
+        $pulpFruits = ProductPulpLinker::fruitNames();
+        $ownPulpNames = ProductPulpLinker::pulpNames();
 
         foreach ($own as $name) {
             $p = Producto::create([
@@ -61,7 +58,7 @@ class ProductoSeeder extends Seeder
             $p = Producto::create([
                 'name'     => $name,
                 'category' => 'pulp',
-                'unit'     => 'kg',
+                'unit'     => 'paquete',
                 'active'   => true,
             ]);
             Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'stock_updated_at' => now()]);
@@ -71,11 +68,13 @@ class ProductoSeeder extends Seeder
             $p = Producto::create([
                 'name'     => $name,
                 'category' => 'pulp',
-                'unit'     => 'kg',
+                'unit'     => 'paquete',
                 'active'   => true,
             ]);
             Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'stock_updated_at' => now()]);
         }
+
+        ProductPulpLinker::link(strict: true);
 
         // Sample suppliers
         Proveedor::insert([

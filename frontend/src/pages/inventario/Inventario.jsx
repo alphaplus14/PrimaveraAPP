@@ -4,16 +4,9 @@ import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
+import { formatStock } from '../../lib/dashboard'
 
 const POR_PAGINA = 15
-
-function formatStock(producto, quantityKg, { corto = false } = {}) {
-  const qty = Number(quantityKg)
-  if (producto?.category === 'pulp') {
-    return corto ? `${Math.round(qty)} paq` : `${Math.round(qty)} paquetes`
-  }
-  return `${qty.toFixed(1)} kg`
-}
 
 export default function Inventario() {
   const { data: items, cargando, recargar } = useApi(getInventario)
@@ -69,7 +62,7 @@ export default function Inventario() {
       ? Number(ajuste.quantity_kg) + Number(form.quantity_kg)
       : null
 
-  const esPulpa = ajuste?.product?.category === 'pulp'
+  const esPulpa = ajuste?.product?.category === 'pulp' || ajuste?.product?.unit === 'paquete'
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
