@@ -6,18 +6,31 @@ use App\Http\Controllers\Controller;
 use App\Models\Compra;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CompraController extends Controller
 {
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $purchases = Compra::with(['product', 'supplier'])
-            ->orderByDesc('date')
-            ->get();
+        $perPage = in_array((int) $request->per_page, [5, 10, 15, 25]) ? (int) $request->per_page : 15;
 
-        return response()->json(['data' => $purchases]);
+        $purchases = Compra::with(['product', 'supplier'])
+            ->when($request->desde, fn ($q) => $q->where('date', '>=', $request->desde))
+            ->when($request->hasta, fn ($q) => $q->where('date', '<=', $request->hasta))
+            ->when($request->busqueda, function ($q) use ($request) {
+                $term = '%'.$request->busqueda.'%';
+                $q->where(function ($q) use ($term) {
+                    $q->whereHas('product', fn ($q) => $q->where('name', 'like', $term))
+                        ->orWhereHas('supplier', fn ($q) => $q->where('name', 'like', $term));
+                });
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        return response()->json($purchases);
     }
 
     public function store(Request $request)
