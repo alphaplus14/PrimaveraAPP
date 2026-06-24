@@ -1,65 +1,88 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getLabores } from '../../api/labores'
-import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
 import FormLabor from './FormLabor'
+import { iconoLabor } from '../../lib/taskTypes'
 import { formatFechaCorta } from '../../lib/dashboard'
 
+const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
 const POR_PAGINA = 15
-
-const TIPO_ICONO = {
-  Siembra: '🌱',
-  Cosecha: '🧺',
-  Fumigación: '💨',
-  Fertilización: '🪣',
-  Poda: '✂️',
-  Riego: '💧',
-  Limpieza: '🧹',
-  'Control de plagas': '🐛',
-}
-
-const icono = (tipo) => TIPO_ICONO[tipo] ?? '🔧'
 
 const responsable = (l) => l.responsible ?? l.assigned_to ?? null
 
+const metaLinea = (labor) => {
+  const partes = [labor.crop, responsable(labor)].filter(Boolean)
+  return partes.length ? partes.join(' · ') : null
+}
+
+const resumenInsumos = (supplies) => {
+  if (!supplies?.length) return null
+  const fmt = (ins) => {
+    const qty = Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')
+    const unit = ins.unit ?? ins.unit_of_measure ?? ''
+    return `${ins.name} ${qty} ${unit}`.trim()
+  }
+  if (supplies.length === 1) return fmt(supplies[0])
+  return `${supplies.length} insumos · ${supplies.map((s) => s.name).join(', ')}`
+}
+
 export default function Labores() {
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [laborEditar, setLaborEditar] = useState(null)
   const [busqueda, setBusqueda] = useState('')
-  const [pagina, setPagina] = useState(1)
-  const { data, cargando, recargar } = useApi(getLabores)
+  const [lista, setLista] = useState([])
+  const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
+  const [cargando, setCargando] = useState(true)
 
-  const todos = data ?? []
-
-  const lista = useMemo(
-    () =>
-      todos.filter((l) => {
-        const q = busqueda.toLowerCase()
-        return (
-          l.task_type?.toLowerCase().includes(q) ||
-          l.crop?.toLowerCase().includes(q) ||
-          responsable(l)?.toLowerCase().includes(q) ||
-          l.description?.toLowerCase().includes(q) ||
-          l.supplies?.some((ins) => ins.name?.toLowerCase().includes(q))
-        )
-      }),
-    [todos, busqueda],
-  )
-
-  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
-  const paginaActual = Math.min(pagina, totalPaginas)
-  const inicio = (paginaActual - 1) * POR_PAGINA
-  const paginaItems = lista.slice(inicio, inicio + POR_PAGINA)
+  const cargar = useCallback(async (page = 1) => {
+    setCargando(true)
+    try {
+      const params = { page, per_page: POR_PAGINA }
+      if (busqueda.trim()) params.busqueda = busqueda.trim()
+      const res = await getLabores(params)
+      const paginado = res.data
+      setLista(paginado.data ?? [])
+      setMeta({
+        currentPage: paginado.current_page ?? 1,
+        lastPage: paginado.last_page ?? 1,
+        total: paginado.total ?? 0,
+      })
+    } catch {
+      setLista([])
+      setMeta({ currentPage: 1, lastPage: 1, total: 0 })
+    } finally {
+      setCargando(false)
+    }
+  }, [busqueda])
 
   useEffect(() => {
-    setPagina(1)
-  }, [busqueda])
+    cargar(1)
+  }, [cargar])
 
   const handleGuardado = () => {
     setMostrarForm(false)
-    recargar()
+    setLaborEditar(null)
+    cargar(meta.currentPage)
   }
+
+  const handleNuevo = () => {
+    setLaborEditar(null)
+    setMostrarForm(true)
+  }
+
+  const handleEditar = (labor) => {
+    setLaborEditar(labor)
+    setMostrarForm(true)
+  }
+
+  const cerrarModal = () => {
+    setMostrarForm(false)
+    setLaborEditar(null)
+  }
+
+  const inicio = (meta.currentPage - 1) * POR_PAGINA
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
@@ -70,11 +93,11 @@ export default function Labores() {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            {lista.length} labor{lista.length !== 1 ? 'es' : ''}
+            {meta.total} labor{meta.total !== 1 ? 'es' : ''}
           </span>
           <button
             type="button"
-            onClick={() => setMostrarForm(true)}
+            onClick={handleNuevo}
             className="bg-[#f56523] text-white text-sm px-4 py-2.5 rounded-xl font-medium hover:bg-[#d9541a] transition-colors"
           >
             + Nueva
@@ -92,7 +115,7 @@ export default function Labores() {
       {cargando ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : lista.length === 0 ? (
@@ -106,7 +129,7 @@ export default function Labores() {
               <p className="text-xs mb-4">Registra siembras, cosechas, fumigaciones y más.</p>
               <button
                 type="button"
-                onClick={() => setMostrarForm(true)}
+                onClick={handleNuevo}
                 className="text-sm text-[#f56523] font-medium hover:underline"
               >
                 Registrar primera labor →
@@ -117,40 +140,8 @@ export default function Labores() {
       ) : (
         <>
           <div className="md:hidden space-y-3">
-            {paginaItems.map((l) => (
-              <div key={l.id} className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl mt-0.5">{icono(l.task_type)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-800">{l.task_type}</p>
-                      <span className="text-xs text-gray-400 shrink-0">{formatFechaCorta(l.date)}</span>
-                    </div>
-                    {l.crop && (
-                      <p className="text-xs text-gray-500 mt-0.5">Cultivo: {l.crop}</p>
-                    )}
-                    {responsable(l) && (
-                      <p className="text-xs text-gray-500">Responsable: {responsable(l)}</p>
-                    )}
-                    {l.description && (
-                      <p className="text-xs text-gray-400 mt-1 truncate">{l.description}</p>
-                    )}
-                    {l.supplies?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {l.supplies.map((ins) => (
-                          <span
-                            key={ins.id}
-                            className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
-                          >
-                            {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')}{' '}
-                            {ins.unit ?? ins.unit_of_measure}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+            {lista.map((l) => (
+              <FilaLaborMovil key={l.id} labor={l} onEditar={handleEditar} />
             ))}
           </div>
 
@@ -163,35 +154,30 @@ export default function Labores() {
                   <th className="text-left px-4 py-3">Cultivo</th>
                   <th className="text-left px-4 py-3">Responsable</th>
                   <th className="text-left px-4 py-3">Insumos</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {paginaItems.map((l) => (
+                {lista.map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(l.date)}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">
-                      {icono(l.task_type)} {l.task_type}
+                      <span className="mr-1">{iconoLabor(l.task_type)}</span>
+                      {l.task_type}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{l.crop ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{responsable(l) ?? '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-gray-500 text-xs max-w-xs">
                       {l.supplies?.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {l.supplies.map((ins) => (
-                            <span
-                              key={ins.id}
-                              className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs"
-                            >
-                              {ins.name} · {Number(ins.pivot?.quantity_used ?? 0).toLocaleString('es-CO')}{' '}
-                              {ins.unit ?? ins.unit_of_measure}
-                            </span>
-                          ))}
-                        </div>
+                        <span className="line-clamp-2">{resumenInsumos(l.supplies)}</span>
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <BotonEditar labor={l} onClick={() => handleEditar(l)} />
                     </td>
                   </tr>
                 ))}
@@ -200,25 +186,80 @@ export default function Labores() {
           </div>
 
           <Paginacion
-            pagina={paginaActual}
-            totalPaginas={totalPaginas}
-            total={lista.length}
-            totalGeneral={todos.length}
+            pagina={meta.currentPage}
+            totalPaginas={meta.lastPage}
+            total={meta.total}
+            totalGeneral={meta.total}
             porPagina={POR_PAGINA}
             inicio={inicio}
             filtrado={!!busqueda}
             sustantivo="labor"
-            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
-            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            onAnterior={() => cargar(meta.currentPage - 1)}
+            onSiguiente={() => cargar(meta.currentPage + 1)}
           />
         </>
       )}
 
       {mostrarForm && (
-        <Modal titulo="Nueva labor" onClose={() => setMostrarForm(false)}>
-          <FormLabor onGuardado={handleGuardado} onCerrar={() => setMostrarForm(false)} />
+        <Modal
+          titulo={laborEditar ? `Editar: ${laborEditar.task_type}` : 'Nueva labor'}
+          onClose={cerrarModal}
+        >
+          <FormLabor labor={laborEditar} onGuardado={handleGuardado} onCerrar={cerrarModal} />
         </Modal>
       )}
     </div>
+  )
+}
+
+function FilaLaborMovil({ labor: l, onEditar }) {
+  const meta = metaLinea(l)
+  const insumos = resumenInsumos(l.supplies)
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => onEditar(l)}
+          className="flex-1 min-w-0 text-left"
+        >
+          <p className="font-semibold text-gray-800 leading-snug">
+            <span className="mr-1">{iconoLabor(l.task_type)}</span>
+            {l.task_type}
+          </p>
+
+          <div className="flex justify-between items-center gap-2 mt-1.5 text-xs text-gray-400">
+            <span className="truncate min-w-0">{meta ?? 'Sin cultivo ni responsable'}</span>
+            <span className="shrink-0">{formatFechaCorta(l.date)}</span>
+          </div>
+
+          {insumos && (
+            <p className="text-xs text-[#f56523] font-medium mt-1 truncate">{insumos}</p>
+          )}
+
+          {l.description && (
+            <p className="text-xs text-gray-400 mt-1.5 line-clamp-2 leading-relaxed">
+              {l.description}
+            </p>
+          )}
+        </button>
+
+        <BotonEditar labor={l} onClick={() => onEditar(l)} className="w-10 h-10 shrink-0" />
+      </div>
+    </div>
+  )
+}
+
+function BotonEditar({ labor, onClick, className = 'w-9 h-9' }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Editar labor ${labor.task_type}`}
+      className={`inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-200 active:bg-orange-50 transition-colors ${className}`}
+    >
+      <img src={ICONO_EDITAR} alt="" className="w-4 h-4 object-contain opacity-80" />
+    </button>
   )
 }

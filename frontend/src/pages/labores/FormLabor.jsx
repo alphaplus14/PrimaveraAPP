@@ -1,33 +1,55 @@
 import { useState, useEffect } from 'react'
-import { crearLabor, getInsumos, crearInsumo } from '../../api/labores'
+import { crearLabor, actualizarLabor, getInsumos, crearInsumo } from '../../api/labores'
 import SelectBuscable from '../../components/ui/SelectBuscable'
+import {
+  TIPOS_LABOR,
+  buildTaskTypeValue,
+  parseTaskTypeForForm,
+} from '../../lib/taskTypes'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 
-const TIPOS_LABOR = [
-  'Siembra', 'Cosecha', 'Fumigación', 'Fertilización',
-  'Poda', 'Riego', 'Limpieza', 'Control de plagas', 'Otro',
-]
+const fechaInput = (valor) => {
+  if (!valor) return hoy()
+  return String(valor).split('T')[0]
+}
+
+const responsableValor = (labor) => labor?.responsible ?? labor?.assigned_to ?? ''
 
 const lineaInsumoVacia = () => ({ id: Math.random(), supply_id: '', quantity_used: '' })
 
-export default function FormLabor({ onGuardado, onCerrar }) {
+export default function FormLabor({ labor, onGuardado, onCerrar }) {
+  const esEdicion = !!labor
+
+  const parsed = parseTaskTypeForForm(labor?.task_type, labor?.crop)
+
   const [insumos, setInsumos] = useState([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
-  const [mostrarInsumos, setMostrarInsumos] = useState(false)
+  const [mostrarInsumos, setMostrarInsumos] = useState((labor?.supplies?.length ?? 0) > 0)
 
-  const [pendingInsumo, setPendingInsumo] = useState(null) // { name, lineaId }
+  const [pendingInsumo, setPendingInsumo] = useState(null)
   const [formInsumo, setFormInsumo] = useState({ type: 'other', unit: '' })
 
   const [form, setForm] = useState({
-    date:        hoy(),
-    task_type:   '',
-    crop:        '',
-    responsible: '',
-    description: '',
+    date:        fechaInput(labor?.date),
+    task_type:   parsed.task_type,
+    otroTexto:   parsed.otroTexto,
+    crop:        labor?.crop ?? parsed.cropExtra ?? '',
+    responsible: responsableValor(labor),
+    description: labor?.description ?? '',
   })
-  const [lineasInsumo, setLineasInsumo] = useState([lineaInsumoVacia()])
+
+  const [lineasInsumo, setLineasInsumo] = useState(() => {
+    if (labor?.supplies?.length) {
+      return labor.supplies.map((ins) => ({
+        id: Math.random(),
+        supply_id: String(ins.id),
+        quantity_used: String(ins.pivot?.quantity_used ?? ''),
+      }))
+    }
+    return [lineaInsumoVacia()]
+  })
 
   useEffect(() => {
     getInsumos().then(({ data }) => setInsumos(data.data)).catch(() => {})
@@ -36,7 +58,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }))
 
   const actualizarLinea = (id, campo, valor) =>
-    setLineasInsumo((prev) => prev.map((l) => l.id === id ? { ...l, [campo]: valor } : l))
+    setLineasInsumo((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
 
   const agregarLinea = () => setLineasInsumo((prev) => [...prev, lineaInsumoVacia()])
   const eliminarLinea = (id) => setLineasInsumo((prev) => prev.filter((l) => l.id !== id))
@@ -69,7 +91,12 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!form.task_type.trim()) { setError('El tipo de labor es obligatorio.'); return }
+
+    const taskType = buildTaskTypeValue(form.task_type, form.otroTexto)
+    if (!taskType) {
+      setError('El tipo de labor es obligatorio.')
+      return
+    }
 
     if (mostrarInsumos) {
       if (lineasInsumo.some((l) => (l.supply_id && !l.quantity_used) || (!l.supply_id && l.quantity_used))) {
@@ -82,7 +109,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
     try {
       const payload = {
         date:        form.date,
-        task_type:   form.task_type,
+        task_type:   taskType,
         crop:        form.crop        || undefined,
         responsible: form.responsible || undefined,
         description: form.description || undefined,
@@ -98,10 +125,14 @@ export default function FormLabor({ onGuardado, onCerrar }) {
         }
       }
 
-      await crearLabor(payload)
+      if (esEdicion) {
+        await actualizarLabor(labor.id, payload)
+      } else {
+        await crearLabor(payload)
+      }
       onGuardado()
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Error al registrar la labor.')
+      setError(err.response?.data?.message ?? 'Error al guardar la labor.')
     } finally {
       setGuardando(false)
     }
@@ -140,7 +171,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
             <button
               key={t}
               type="button"
-              onClick={() => set('task_type', t)}
+              onClick={() => setForm((f) => ({ ...f, task_type: t, otroTexto: t === 'Otro' ? f.otroTexto : '' }))}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 form.task_type === t
                   ? 'bg-[#1a365d] text-white'
@@ -156,8 +187,14 @@ export default function FormLabor({ onGuardado, onCerrar }) {
             type="text"
             autoFocus={form.task_type === 'Otro'}
             placeholder="Describir labor..."
-            value={form.task_type === 'Otro' ? '' : form.task_type}
-            onChange={(e) => set('task_type', e.target.value)}
+            value={form.task_type === 'Otro' ? form.otroTexto : form.task_type}
+            onChange={(e) =>
+              setForm((f) =>
+                f.task_type === 'Otro'
+                  ? { ...f, otroTexto: e.target.value }
+                  : { ...f, task_type: e.target.value },
+              )
+            }
             className={inputClass}
           />
         )}
@@ -222,7 +259,7 @@ export default function FormLabor({ onGuardado, onCerrar }) {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">#{idx + 1}</span>
                 {lineasInsumo.length > 1 && (
-                  <button onClick={() => eliminarLinea(linea.id)} className="text-xs text-red-400 hover:text-red-600">
+                  <button type="button" onClick={() => eliminarLinea(linea.id)} className="text-xs text-red-400 hover:text-red-600">
                     Eliminar
                   </button>
                 )}
@@ -278,12 +315,14 @@ export default function FormLabor({ onGuardado, onCerrar }) {
                   </div>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={handleConfirmarInsumo}
                       className="flex-1 bg-[#1a365d] text-white py-2 rounded-lg text-xs font-medium"
                     >
                       Crear insumo
                     </button>
                     <button
+                      type="button"
                       onClick={() => setPendingInsumo(null)}
                       className="px-3 border border-gray-300 rounded-lg text-xs text-gray-400"
                     >
@@ -322,17 +361,19 @@ export default function FormLabor({ onGuardado, onCerrar }) {
 
       <div className="flex gap-3 pt-1">
         <button
+          type="button"
           onClick={onCerrar}
           className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium"
         >
           Cancelar
         </button>
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={guardando}
           className="flex-1 bg-[#f56523] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-60"
         >
-          {guardando ? 'Guardando...' : 'Registrar labor'}
+          {guardando ? 'Guardando...' : esEdicion ? 'Guardar cambios' : 'Registrar labor'}
         </button>
       </div>
     </div>
