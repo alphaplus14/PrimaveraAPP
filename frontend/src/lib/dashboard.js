@@ -26,6 +26,20 @@ export function formatFechaCorta(valor) {
 export const formatKg = (valor) =>
   new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(Number(valor) || 0) + ' kg'
 
+/** Stock en la unidad del producto: kg para fruta, paquetes para pulpa. */
+export function formatStock(producto, quantity, { corto = false } = {}) {
+  const qty = Number(quantity)
+  const enPaquetes = producto?.category === 'pulp' || producto?.unit === 'paquete'
+  if (enPaquetes) {
+    return corto ? `${Math.round(qty)} paq` : `${Math.round(qty)} paquetes`
+  }
+  return `${qty.toFixed(1)} kg`
+}
+
+export function productoEnPaquetes(producto) {
+  return producto?.category === 'pulp' || producto?.unit === 'paquete'
+}
+
 /** Fecha de negocio (solo día) sin problemas de zona horaria ni ISO largo de Laravel */
 export function parseFechaNegocio(valor) {
   if (!valor) return null

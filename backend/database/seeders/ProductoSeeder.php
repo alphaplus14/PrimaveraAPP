@@ -61,7 +61,7 @@ class ProductoSeeder extends Seeder
             $p = Producto::create([
                 'name'     => $name,
                 'category' => 'pulp',
-                'unit'     => 'kg',
+                'unit'     => 'paquete',
                 'active'   => true,
             ]);
             Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'stock_updated_at' => now()]);
@@ -71,7 +71,7 @@ class ProductoSeeder extends Seeder
             $p = Producto::create([
                 'name'     => $name,
                 'category' => 'pulp',
-                'unit'     => 'kg',
+                'unit'     => 'paquete',
                 'active'   => true,
             ]);
             Inventario::create(['product_id' => $p->id, 'quantity_kg' => 0, 'stock_updated_at' => now()]);

@@ -6,6 +6,7 @@ import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
 import FormProducto from './FormProducto'
 import { CATEGORY_LABEL, CATEGORY_BADGE } from '../../constants/enums'
+import { formatStock } from '../../lib/dashboard'
 
 const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
 const FILTROS = ['todos', 'own', 'purchased', 'pulp']
@@ -134,7 +135,7 @@ export default function Productos() {
                   <th className="text-left px-4 py-3">Nombre</th>
                   <th className="text-left px-4 py-3">Categoría</th>
                   <th className="text-center px-4 py-3">Para pulpa</th>
-                  <th className="text-right px-4 py-3">Stock (kg)</th>
+                  <th className="text-right px-4 py-3">Stock</th>
                   <th className="text-center px-4 py-3">Estado</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -155,9 +156,7 @@ export default function Productos() {
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {p.inventory
-                        ? Number(p.inventory.quantity_kg).toLocaleString('es-CO', {
-                            maximumFractionDigits: 1,
-                          })
+                        ? formatStock(p, p.inventory.quantity_kg)
                         : '—'}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -255,7 +254,7 @@ function FilaProductoMovil({ producto: p, onEditar }) {
             Stock:{' '}
             <span className="font-medium text-gray-600 tabular-nums">
               {p.inventory
-                ? `${Number(p.inventory.quantity_kg).toFixed(1)} kg`
+                ? formatStock(p, p.inventory.quantity_kg)
                 : '—'}
             </span>
           </p>
