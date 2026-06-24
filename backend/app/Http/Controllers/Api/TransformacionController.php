@@ -52,13 +52,13 @@ class TransformacionController extends Controller
                 ['product_id' => $data['source_product_id']],
                 ['quantity_kg' => 0]
             );
-            $invOrigen->decrement('quantity_kg', $data['fruit_quantity_kg']);
+            $invOrigen->subtractQuantity($data['fruit_quantity_kg']);
             $invOrigen->update(['stock_updated_at' => now()]);
 
             MovimientoInventario::create([
                 'product_id' => $data['source_product_id'],
                 'type' => 'transformation',
-                'quantity_kg' => -$data['fruit_quantity_kg'],
+                'quantity_kg' => -$data['fruit_quantity_kg'], // kg de fruta
                 'date' => $data['date'],
                 'reference_id' => $transformacion->id,
             ]);
@@ -67,13 +67,13 @@ class TransformacionController extends Controller
                 ['product_id' => $data['pulp_product_id']],
                 ['quantity_kg' => 0]
             );
-            $invPulpa->increment('quantity_kg', $data['pulp_quantity_packages']);
+            $invPulpa->addQuantity($data['pulp_quantity_packages']); // paquetes
             $invPulpa->update(['stock_updated_at' => now()]);
 
             MovimientoInventario::create([
                 'product_id' => $data['pulp_product_id'],
                 'type' => 'transformation',
-                'quantity_kg' => $data['pulp_quantity_packages'],
+                'quantity_kg' => $data['pulp_quantity_packages'], // paquetes
                 'date' => $data['date'],
                 'reference_id' => $transformacion->id,
             ]);

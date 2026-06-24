@@ -9,6 +9,10 @@ class Inventario extends Model
 {
     protected $table = 'inventories';
 
+    /**
+     * quantity_kg: cantidad en la unidad del producto (kg o paquetes).
+     * Ver Producto::stockUnit().
+     */
     protected $fillable = [
         'product_id',
         'quantity_kg',
@@ -23,5 +27,15 @@ class Inventario extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id');
+    }
+
+    public function addQuantity(float $amount): void
+    {
+        $this->increment('quantity_kg', $amount);
+    }
+
+    public function subtractQuantity(float $amount): void
+    {
+        $this->decrement('quantity_kg', $amount);
     }
 }

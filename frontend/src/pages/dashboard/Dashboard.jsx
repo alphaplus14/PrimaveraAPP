@@ -13,6 +13,7 @@ import {
   filtrarStockBajo,
   formatCOP,
   formatKg,
+  formatStock,
   tiempoRelativo,
 } from '../../lib/dashboard'
 
@@ -150,7 +151,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4 md:gap-6 min-h-0">
               <PanelWidget
                 titulo="Productos en bajo stock"
-                subtitulo="Menos de 5 kg disponibles"
+                subtitulo="Menos de 5 kg o paquetes"
                 onVerTodo={() => setModalStock(true)}
                 className="max-h-72 md:max-h-80"
               >
@@ -238,7 +239,7 @@ export default function Dashboard() {
                     Number(detalleStock.quantity_kg) < 5 ? 'text-[#F59E0B]' : 'text-slate-900'
                   }`}
                 >
-                  {formatKg(detalleStock.quantity_kg)}
+                  {formatStock(detalleStock.product, detalleStock.quantity_kg)}
                 </p>
               </div>
             </div>
@@ -326,7 +327,7 @@ function FilaStockBajo({ item, onVer, enModal = false }) {
         <p className="text-sm font-medium text-slate-800 truncate">{item.product?.name}</p>
         <p className="text-xs text-slate-400">
           <span className={critico ? 'text-rose-500 font-medium' : 'text-[#F59E0B] font-medium'}>
-            {formatKg(item.quantity_kg)}
+            {formatStock(item.product, item.quantity_kg)}
           </span>
           {' · '}
           {CATEGORY_LABEL[item.product?.category] ?? item.product?.category}
