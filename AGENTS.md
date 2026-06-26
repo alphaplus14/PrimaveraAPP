@@ -59,3 +59,5 @@ Contexto detallado en `.cursor/rules/`:
 ## Fuente de verdad
 
 Especificación funcional: `especificacion_sistema_finca` (documento PDF del proyecto).
+
+Feedback operativo de la finca (jun 2026): `docs/feedback-stakeholders.md`, `docs/estado-vs-feedback.md`.
