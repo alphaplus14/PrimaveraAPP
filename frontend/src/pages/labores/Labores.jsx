@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getLabores } from '../../api/labores'
+import { getLabores, eliminarLabor } from '../../api/labores'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
+import AccionesRegistro from '../../components/ui/AccionesRegistro'
 import FormLabor from './FormLabor'
 import { iconoLabor } from '../../lib/taskTypes'
 import { formatFechaCorta } from '../../lib/dashboard'
 
-const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
 const POR_PAGINA = 15
 
 const responsable = (l) => l.responsible ?? l.assigned_to ?? null
@@ -77,6 +77,16 @@ export default function Labores() {
     setMostrarForm(true)
   }
 
+  const handleEliminar = async (labor) => {
+    if (!window.confirm(`¿Eliminar la labor "${labor.task_type}"?`)) return
+    try {
+      await eliminarLabor(labor.id)
+      cargar(meta.currentPage)
+    } catch {
+      window.alert('No se pudo eliminar la labor.')
+    }
+  }
+
   const cerrarModal = () => {
     setMostrarForm(false)
     setLaborEditar(null)
@@ -141,7 +151,12 @@ export default function Labores() {
         <>
           <div className="md:hidden space-y-3">
             {lista.map((l) => (
-              <FilaLaborMovil key={l.id} labor={l} onEditar={handleEditar} />
+              <FilaLaborMovil
+                key={l.id}
+                labor={l}
+                onEditar={handleEditar}
+                onEliminar={handleEliminar}
+              />
             ))}
           </div>
 
@@ -177,7 +192,11 @@ export default function Labores() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <BotonEditar labor={l} onClick={() => handleEditar(l)} />
+                      <AccionesRegistro
+                        etiqueta={l.task_type}
+                        onEditar={() => handleEditar(l)}
+                        onEliminar={() => handleEliminar(l)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -212,7 +231,7 @@ export default function Labores() {
   )
 }
 
-function FilaLaborMovil({ labor: l, onEditar }) {
+function FilaLaborMovil({ labor: l, onEditar, onEliminar }) {
   const meta = metaLinea(l)
   const insumos = resumenInsumos(l.supplies)
 
@@ -245,21 +264,13 @@ function FilaLaborMovil({ labor: l, onEditar }) {
           )}
         </button>
 
-        <BotonEditar labor={l} onClick={() => onEditar(l)} className="w-10 h-10 shrink-0" />
+        <AccionesRegistro
+          etiqueta={l.task_type}
+          onEditar={() => onEditar(l)}
+          onEliminar={() => onEliminar(l)}
+          tamano="w-10 h-10"
+        />
       </div>
     </div>
-  )
-}
-
-function BotonEditar({ labor, onClick, className = 'w-9 h-9' }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`Editar labor ${labor.task_type}`}
-      className={`inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-200 active:bg-orange-50 transition-colors ${className}`}
-    >
-      <img src={ICONO_EDITAR} alt="" className="w-4 h-4 object-contain opacity-80" />
-    </button>
   )
 }

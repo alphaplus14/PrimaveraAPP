@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getVentas } from '../../api/ventas'
+import { getVentas, eliminarVenta } from '../../api/ventas'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
+import AccionesRegistro from '../../components/ui/AccionesRegistro'
 import FormVenta from './FormVenta'
 import { SALE_TYPE_LABEL } from '../../constants/enums'
 import { formatCOP, formatFechaCorta } from '../../lib/dashboard'
@@ -11,6 +12,7 @@ const POR_PAGINA = 15
 
 export default function Ventas() {
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [ventaEditar, setVentaEditar] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [lista, setLista] = useState([])
   const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
@@ -43,7 +45,36 @@ export default function Ventas() {
 
   const handleGuardado = () => {
     setMostrarForm(false)
-    cargar(1)
+    setVentaEditar(null)
+    cargar(meta.currentPage)
+  }
+
+  const handleNuevo = () => {
+    setVentaEditar(null)
+    setMostrarForm(true)
+  }
+
+  const handleEditar = (venta) => {
+    setVentaEditar(venta)
+    setMostrarForm(true)
+  }
+
+  const handleEliminar = async (venta) => {
+    const nombre = venta.product?.name ?? 'esta venta'
+    if (!window.confirm(`¿Eliminar la venta de ${nombre}? Se devolverá el stock al inventario.`)) {
+      return
+    }
+    try {
+      await eliminarVenta(venta.id)
+      cargar(meta.currentPage)
+    } catch {
+      window.alert('No se pudo eliminar la venta.')
+    }
+  }
+
+  const cerrarModal = () => {
+    setMostrarForm(false)
+    setVentaEditar(null)
   }
 
   const inicio = (meta.currentPage - 1) * POR_PAGINA
@@ -58,7 +89,7 @@ export default function Ventas() {
           </span>
           <button
             type="button"
-            onClick={() => setMostrarForm(true)}
+            onClick={handleNuevo}
             className="bg-[#f56523] text-white text-sm px-4 py-2.5 rounded-xl font-medium hover:bg-[#d9541a] transition-colors"
           >
             + Nueva venta
@@ -88,7 +119,7 @@ export default function Ventas() {
           {!busqueda && (
             <button
               type="button"
-              onClick={() => setMostrarForm(true)}
+              onClick={handleNuevo}
               className="text-sm text-[#f56523] font-medium hover:underline"
             >
               Registrar primera venta →
@@ -100,26 +131,42 @@ export default function Ventas() {
           <div className="md:hidden space-y-3">
             {lista.map((v) => (
               <div key={v.id} className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex justify-between items-start gap-2 mb-1.5">
-                  <p className="font-semibold text-gray-800">{v.product?.name}</p>
-                  <span className="font-bold text-green-700 text-sm shrink-0">{formatCOP(v.total)}</span>
-                </div>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      v.sale_type === 'wholesale'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEditar(v)}
+                    className="flex-1 min-w-0 text-left"
                   >
-                    {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
-                  <span className="truncate">
-                    {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg
-                  </span>
-                  <span className="shrink-0">{formatFechaCorta(v.date)}</span>
+                    <div className="flex justify-between items-start gap-2 mb-1.5">
+                      <p className="font-semibold text-gray-800 truncate">{v.product?.name}</p>
+                      <span className="font-bold text-green-700 text-sm shrink-0">
+                        {formatCOP(v.total)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          v.sale_type === 'wholesale'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
+                      <span className="truncate">
+                        {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg
+                      </span>
+                      <span className="shrink-0">{formatFechaCorta(v.date)}</span>
+                    </div>
+                  </button>
+                  <AccionesRegistro
+                    etiqueta={v.product?.name}
+                    onEditar={() => handleEditar(v)}
+                    onEliminar={() => handleEliminar(v)}
+                    tamano="w-10 h-10"
+                  />
                 </div>
               </div>
             ))}
@@ -136,12 +183,15 @@ export default function Ventas() {
                   <th className="text-right px-4 py-3">kg</th>
                   <th className="text-right px-4 py-3">$/kg</th>
                   <th className="text-right px-4 py-3">Total</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatFechaCorta(v.date)}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {formatFechaCorta(v.date)}
+                    </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{v.product?.name}</td>
                     <td className="px-4 py-3 text-gray-600">{v.customer?.name}</td>
                     <td className="px-4 py-3">
@@ -163,6 +213,13 @@ export default function Ventas() {
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-green-700 tabular-nums">
                       {formatCOP(v.total)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <AccionesRegistro
+                        etiqueta={v.product?.name}
+                        onEditar={() => handleEditar(v)}
+                        onEliminar={() => handleEliminar(v)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -186,8 +243,11 @@ export default function Ventas() {
       )}
 
       {mostrarForm && (
-        <Modal titulo="Nueva venta" onClose={() => setMostrarForm(false)}>
-          <FormVenta onGuardado={handleGuardado} onCerrar={() => setMostrarForm(false)} />
+        <Modal
+          titulo={ventaEditar ? `Editar: ${ventaEditar.product?.name}` : 'Nueva venta'}
+          onClose={cerrarModal}
+        >
+          <FormVenta venta={ventaEditar} onGuardado={handleGuardado} onCerrar={cerrarModal} />
         </Modal>
       )}
     </div>
