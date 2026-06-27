@@ -33,4 +33,9 @@ class Labor extends Model
             ->withPivot('quantity_used')
             ->withTimestamps();
     }
+
+    public function workers(): HasMany
+    {
+        return $this->hasMany(LaborWorker::class, 'farm_task_id');
+    }
 }

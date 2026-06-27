@@ -5,14 +5,26 @@ import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
 import AccionesRegistro from '../../components/ui/AccionesRegistro'
 import FormCompra from './FormCompra'
+import { PURCHASE_TYPE_LABEL } from '../../constants/enums'
 import { formatCOP, formatFechaCorta } from '../../lib/dashboard'
 
 const POR_PAGINA = 15
+const FILTROS_CONCEPTO = [
+  { id: '', label: 'Todas' },
+  { id: 'resale', label: 'Para venta' },
+  { id: 'farm_supply', label: 'Insumo finca' },
+]
+
+const nombreItem = (c) =>
+  c.purchase_type === 'farm_supply'
+    ? c.supply?.name ?? 'Insumo'
+    : c.product?.name ?? 'Producto'
 
 export default function Compras() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [compraEditar, setCompraEditar] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [filtroConcepto, setFiltroConcepto] = useState('')
   const [lista, setLista] = useState([])
   const [meta, setMeta] = useState({ currentPage: 1, lastPage: 1, total: 0 })
   const [cargando, setCargando] = useState(true)
@@ -22,6 +34,7 @@ export default function Compras() {
     try {
       const params = { page, per_page: POR_PAGINA }
       if (busqueda.trim()) params.busqueda = busqueda.trim()
+      if (filtroConcepto) params.purchase_type = filtroConcepto
       const res = await getCompras(params)
       const paginado = res.data
       setLista(paginado.data ?? [])
@@ -36,7 +49,7 @@ export default function Compras() {
     } finally {
       setCargando(false)
     }
-  }, [busqueda])
+  }, [busqueda, filtroConcepto])
 
   useEffect(() => {
     cargar(1)
@@ -59,8 +72,12 @@ export default function Compras() {
   }
 
   const handleEliminar = async (compra) => {
-    const nombre = compra.product?.name ?? 'esta compra'
-    if (!window.confirm(`¿Eliminar la compra de ${nombre}? Se descontará del inventario.`)) {
+    const nombre = nombreItem(compra)
+    const efecto =
+      compra.purchase_type === 'farm_supply'
+        ? 'Se descontará del stock de insumos.'
+        : 'Se descontará del inventario de productos.'
+    if (!window.confirm(`¿Eliminar la compra de ${nombre}? ${efecto}`)) {
       return
     }
     try {
@@ -99,9 +116,26 @@ export default function Compras() {
       <Buscador
         value={busqueda}
         onChange={setBusqueda}
-        placeholder="Buscar por producto o proveedor..."
-        className="mb-4"
+        placeholder="Buscar por producto, insumo o proveedor..."
+        className="mb-3"
       />
+
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {FILTROS_CONCEPTO.map((f) => (
+          <button
+            key={f.id || 'todos'}
+            type="button"
+            onClick={() => setFiltroConcepto(f.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-colors ${
+              filtroConcepto === f.id
+                ? 'bg-[#1a365d] text-white'
+                : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       {cargando ? (
         <div className="space-y-2">
@@ -137,20 +171,26 @@ export default function Compras() {
                     className="flex-1 min-w-0 text-left"
                   >
                     <div className="flex justify-between items-start gap-2 mb-1">
-                      <p className="font-semibold text-gray-800 truncate">{c.product?.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-800 truncate">{nombreItem(c)}</p>
+                        <span className="text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                          {PURCHASE_TYPE_LABEL[c.purchase_type] ?? 'Compra'}
+                        </span>
+                      </div>
                       <span className="font-bold text-[#1a365d] text-sm shrink-0">
                         {formatCOP(c.total)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-gray-400 gap-2">
                       <span className="truncate">
-                        {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)} kg
+                        {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)}{' '}
+                        {c.supply?.unit ?? 'kg'}
                       </span>
                       <span className="shrink-0">{formatFechaCorta(c.date)}</span>
                     </div>
                   </button>
                   <AccionesRegistro
-                    etiqueta={c.product?.name}
+                    etiqueta={nombreItem(c)}
                     onEditar={() => handleEditar(c)}
                     onEliminar={() => handleEliminar(c)}
                     tamano="w-10 h-10"
@@ -165,7 +205,8 @@ export default function Compras() {
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Producto</th>
+                  <th className="text-left px-4 py-3">Concepto</th>
+                  <th className="text-left px-4 py-3">Ítem</th>
                   <th className="text-left px-4 py-3">Proveedor</th>
                   <th className="text-right px-4 py-3">kg</th>
                   <th className="text-right px-4 py-3">$/kg</th>
@@ -179,7 +220,12 @@ export default function Compras() {
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(c.date)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{c.product?.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800">
+                        {PURCHASE_TYPE_LABEL[c.purchase_type] ?? c.purchase_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{nombreItem(c)}</td>
                     <td className="px-4 py-3 text-gray-600">{c.supplier?.name}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-600">
                       {Number(c.quantity_kg).toFixed(1)}
@@ -192,7 +238,7 @@ export default function Compras() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <AccionesRegistro
-                        etiqueta={c.product?.name}
+                        etiqueta={nombreItem(c)}
                         onEditar={() => handleEditar(c)}
                         onEliminar={() => handleEliminar(c)}
                       />
@@ -210,7 +256,7 @@ export default function Compras() {
             totalGeneral={meta.total}
             porPagina={POR_PAGINA}
             inicio={inicio}
-            filtrado={!!busqueda}
+            filtrado={!!busqueda || !!filtroConcepto}
             sustantivo="compra"
             onAnterior={() => cargar(meta.currentPage - 1)}
             onSiguiente={() => cargar(meta.currentPage + 1)}
@@ -220,7 +266,7 @@ export default function Compras() {
 
       {mostrarForm && (
         <Modal
-          titulo={compraEditar ? `Editar: ${compraEditar.product?.name}` : 'Nueva compra'}
+          titulo={compraEditar ? `Editar: ${nombreItem(compraEditar)}` : 'Nueva compra'}
           onClose={cerrarModal}
         >
           <FormCompra compra={compraEditar} onGuardado={handleGuardado} onCerrar={cerrarModal} />

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Compra;
+use App\Models\Insumo;
 use App\Models\Inventario;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
@@ -53,6 +54,19 @@ class InventarioTransaccionService
 
     public function revertirCompra(Compra $compra): void
     {
+        if ($compra->purchase_type === 'farm_supply') {
+            if ($compra->supply_id) {
+                Insumo::where('id', $compra->supply_id)
+                    ->decrement('current_stock', $compra->quantity_kg);
+            }
+
+            return;
+        }
+
+        if (! $compra->product_id) {
+            return;
+        }
+
         $inventario = Inventario::where('product_id', $compra->product_id)->first();
 
         if ($inventario) {
@@ -69,6 +83,19 @@ class InventarioTransaccionService
 
     public function aplicarCompra(Compra $compra): void
     {
+        if ($compra->purchase_type === 'farm_supply') {
+            if ($compra->supply_id) {
+                Insumo::where('id', $compra->supply_id)
+                    ->increment('current_stock', $compra->quantity_kg);
+            }
+
+            return;
+        }
+
+        if (! $compra->product_id) {
+            return;
+        }
+
         $inventario = Inventario::where('product_id', $compra->product_id)->first();
 
         if ($inventario) {

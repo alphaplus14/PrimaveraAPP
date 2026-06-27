@@ -27,3 +27,19 @@ export const MOVEMENT_TYPE_LABEL = {
   transformation: { label: 'Transformación', color: 'text-orange-600', bg: 'bg-orange-50' },
   adjustment: { label: 'Ajuste', color: 'text-gray-600', bg: 'bg-gray-50' },
 }
+
+export const PURCHASE_TYPE_LABEL = {
+  resale: 'Para venta',
+  farm_supply: 'Insumo finca',
+}
+
+export const SUPPLY_TYPE_LABEL = {
+  chemical: 'Químico',
+  fertilizer: 'Abono',
+  other: 'Otro',
+}
+
+export const PAYMENT_MODE_LABEL = {
+  per_kg: 'Por kg',
+  per_day: 'Por día',
+}

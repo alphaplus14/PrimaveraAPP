@@ -58,6 +58,17 @@ class AuthController extends Controller
 
     public function user(Request $request): JsonResponse
     {
-        return response()->json(['data' => $request->user()]);
+        $user = $request->user();
+
+        return response()->json([
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'rol' => $user->rol,
+                'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+                'last_price_review_date' => $user->last_price_review_date?->toDateString(),
+            ],
+        ]);
     }
 }

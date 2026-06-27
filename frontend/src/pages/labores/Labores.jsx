@@ -5,8 +5,8 @@ import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
 import AccionesRegistro from '../../components/ui/AccionesRegistro'
 import FormLabor from './FormLabor'
-import { iconoLabor } from '../../lib/taskTypes'
-import { formatFechaCorta } from '../../lib/dashboard'
+import { iconoLabor, esLaborCosecha } from '../../lib/taskTypes'
+import { formatFechaCorta, formatCOP } from '../../lib/dashboard'
 
 const POR_PAGINA = 15
 
@@ -26,6 +26,14 @@ const resumenInsumos = (supplies) => {
   }
   if (supplies.length === 1) return fmt(supplies[0])
   return `${supplies.length} insumos · ${supplies.map((s) => s.name).join(', ')}`
+}
+
+const resumenCosecha = (labor) => {
+  if (!esLaborCosecha(labor.task_type) || !labor.workers?.length) return null
+  const kg = labor.workers.reduce((s, w) => s + Number(w.quantity_kg || 0), 0)
+  const paid = labor.workers.reduce((s, w) => s + Number(w.total_paid || 0), 0)
+  const n = labor.workers.length
+  return `${n} colaborador${n !== 1 ? 'es' : ''} · ${kg.toFixed(1)} kg · ${formatCOP(paid)}`
 }
 
 export default function Labores() {
@@ -185,10 +193,13 @@ export default function Labores() {
                     <td className="px-4 py-3 text-gray-600">{l.crop ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{responsable(l) ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs max-w-xs">
+                      {resumenCosecha(l) && (
+                        <span className="block text-amber-700 font-medium mb-0.5">{resumenCosecha(l)}</span>
+                      )}
                       {l.supplies?.length > 0 ? (
                         <span className="line-clamp-2">{resumenInsumos(l.supplies)}</span>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        !resumenCosecha(l) && <span className="text-gray-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -223,6 +234,7 @@ export default function Labores() {
         <Modal
           titulo={laborEditar ? `Editar: ${laborEditar.task_type}` : 'Nueva labor'}
           onClose={cerrarModal}
+          ancho="lg"
         >
           <FormLabor labor={laborEditar} onGuardado={handleGuardado} onCerrar={cerrarModal} />
         </Modal>
@@ -234,6 +246,7 @@ export default function Labores() {
 function FilaLaborMovil({ labor: l, onEditar, onEliminar }) {
   const meta = metaLinea(l)
   const insumos = resumenInsumos(l.supplies)
+  const cosecha = resumenCosecha(l)
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
@@ -252,6 +265,10 @@ function FilaLaborMovil({ labor: l, onEditar, onEliminar }) {
             <span className="truncate min-w-0">{meta ?? 'Sin cultivo ni responsable'}</span>
             <span className="shrink-0">{formatFechaCorta(l.date)}</span>
           </div>
+
+          {cosecha && (
+            <p className="text-xs text-amber-700 font-medium mt-1 truncate">{cosecha}</p>
+          )}
 
           {insumos && (
             <p className="text-xs text-[#f56523] font-medium mt-1 truncate">{insumos}</p>

@@ -1,21 +1,26 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   getReporteVentas,
   getReporteCompras,
   getReporteMovimientos,
+  getReporteRentabilidad,
+  getReporteLabores,
   rangoPreset,
 } from '../../api/reportes'
 import { getProductos } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
-import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
+import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL, PAYMENT_MODE_LABEL } from '../../constants/enums'
+import { formatFechaCorta } from '../../lib/dashboard'
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
 const TABS = [
-  { id: 'ventas',      label: 'Ventas',      icon: '💰' },
-  { id: 'compras',     label: 'Compras',     icon: '🛒' },
-  { id: 'movimientos', label: 'Movimientos', icon: '📋' },
+  { id: 'ventas',        label: 'Ventas',        icon: '💰' },
+  { id: 'compras',       label: 'Compras',       icon: '🛒' },
+  { id: 'rentabilidad',  label: 'Rentabilidad', icon: '📈' },
+  { id: 'labores',       label: 'Cosechas',     icon: '🧺' },
+  { id: 'movimientos',   label: 'Movimientos',   icon: '📋' },
 ]
 
 const PRESETS = [
@@ -30,11 +35,18 @@ export default function Reportes() {
   const [rango, setRango] = useState(rangoPreset('mes'))
   const [presetActivo, setPresetActivo] = useState('mes')
   const [productoFiltro, setProductoFiltro] = useState('')
+  const [rentabilidad, setRentabilidad] = useState({ rows: [], meta: null })
+  const [cargandoRentabilidad, setCargandoRentabilidad] = useState(false)
+  const [labores, setLabores] = useState({ data: null, meta: null })
+  const [cargandoLabores, setCargandoLabores] = useState(false)
+  const [cultivoFiltro, setCultivoFiltro] = useState('')
 
   const { data: dataProductos } = useApi(getProductos)
   const productos = dataProductos ?? []
 
   const fetchDatos = useCallback(() => {
+    if (tab === 'rentabilidad') return Promise.resolve({ data: { data: null } })
+    if (tab === 'labores') return Promise.resolve({ data: { data: null } })
     if (tab === 'ventas')      return getReporteVentas(rango)
     if (tab === 'compras')     return getReporteCompras(rango)
     if (tab === 'movimientos') return getReporteMovimientos({ ...rango, product_id: productoFiltro || undefined })
@@ -43,9 +55,49 @@ export default function Reportes() {
 
   const { data: resultado, cargando, recargar } = useApi(fetchDatos, [tab, rango, productoFiltro])
 
+  const cargarRentabilidad = useCallback(() => {
+    setCargandoRentabilidad(true)
+    getReporteRentabilidad({
+      ...rango,
+      product_id: productoFiltro || undefined,
+    })
+      .then(({ data }) => {
+        setRentabilidad({ rows: data.data ?? [], meta: data.meta ?? null })
+      })
+      .catch(() => setRentabilidad({ rows: [], meta: null }))
+      .finally(() => setCargandoRentabilidad(false))
+  }, [rango, productoFiltro])
+
+  useEffect(() => {
+    if (tab === 'rentabilidad') cargarRentabilidad()
+  }, [tab, cargarRentabilidad])
+
+  const cargarLabores = useCallback(() => {
+    setCargandoLabores(true)
+    getReporteLabores({
+      ...rango,
+      crop: cultivoFiltro.trim() || undefined,
+    })
+      .then(({ data }) => {
+        setLabores({ data: data.data ?? null, meta: data.meta ?? null })
+      })
+      .catch(() => setLabores({ data: null, meta: null }))
+      .finally(() => setCargandoLabores(false))
+  }, [rango, cultivoFiltro])
+
+  useEffect(() => {
+    if (tab === 'labores') cargarLabores()
+  }, [tab, cargarLabores])
+
   const aplicarPreset = (id) => {
     setPresetActivo(id)
     setRango(rangoPreset(id))
+  }
+
+  const handleBuscar = () => {
+    if (tab === 'rentabilidad') cargarRentabilidad()
+    else if (tab === 'labores') cargarLabores()
+    else recargar()
   }
 
   const aplicarRangoManual = (campo, valor) => {
@@ -57,6 +109,11 @@ export default function Reportes() {
   const datosVentas      = tab === 'ventas'      ? (resultado ?? []) : []
   const datosCompras     = tab === 'compras'     ? (resultado ?? []) : []
   const datosMovimientos = tab === 'movimientos' ? (resultado ?? []) : []
+  const datosRentabilidad = tab === 'rentabilidad' ? rentabilidad.rows : []
+  const metaRentabilidad = tab === 'rentabilidad' ? rentabilidad.meta : null
+  const datosLabores = tab === 'labores' ? (labores.data ?? { tasks: [], by_crop: [], by_date: [] }) : null
+  const metaLabores = tab === 'labores' ? labores.meta : null
+  const cargandoVista = tab === 'rentabilidad' ? cargandoRentabilidad : tab === 'labores' ? cargandoLabores : cargando
 
   // Compute summaries inline
   const totalVentasKg    = datosVentas.reduce((s, v) => s + Number(v.quantity_kg), 0)
@@ -127,14 +184,14 @@ export default function Reportes() {
             className={inputClass}
           />
           <button
-            onClick={recargar}
+            onClick={handleBuscar}
             className="shrink-0 px-3 py-2.5 bg-[#f56523] text-white rounded-lg text-sm font-medium hover:bg-[#d9541a]"
           >
             Buscar
           </button>
         </div>
 
-        {tab === 'movimientos' && (
+        {(tab === 'movimientos' || tab === 'rentabilidad') && (
           <select
             value={productoFiltro}
             onChange={(e) => setProductoFiltro(e.target.value)}
@@ -146,10 +203,20 @@ export default function Reportes() {
             ))}
           </select>
         )}
+
+        {tab === 'labores' && (
+          <input
+            type="text"
+            value={cultivoFiltro}
+            onChange={(e) => setCultivoFiltro(e.target.value)}
+            placeholder="Filtrar por cultivo (ej: Plátano)"
+            className={inputClass}
+          />
+        )}
       </div>
 
       {/* Contenido */}
-      {cargando ? (
+      {cargandoVista ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
@@ -281,6 +348,215 @@ export default function Reportes() {
                 </div>
               ) : (
                 <EmptyState mensaje="Sin compras en este período" />
+              )}
+            </div>
+          )}
+
+          {/* ── TAB RENTABILIDAD ── */}
+          {tab === 'rentabilidad' && (
+            <div className="space-y-4">
+              <p className="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Margen estimado del período: ventas menos compras de reventa por producto. Sin lotes
+                ni costo FIFO.
+              </p>
+
+              {metaRentabilidad && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-lg font-bold text-green-600 leading-tight">
+                      {formatCOP(metaRentabilidad.sales_total)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Ventas</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-lg font-bold text-blue-600 leading-tight">
+                      {formatCOP(metaRentabilidad.purchase_total)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Compras reventa</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p
+                      className={`text-lg font-bold leading-tight ${
+                        metaRentabilidad.margin >= 0 ? 'text-[#1a365d]' : 'text-red-600'
+                      }`}
+                    >
+                      {formatCOP(metaRentabilidad.margin)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Margen</p>
+                  </div>
+                </div>
+              )}
+
+              {datosRentabilidad.length > 0 ? (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Por producto ({datosRentabilidad.length})
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[32rem]">
+                      <thead className="bg-gray-50 text-gray-400 text-xs">
+                        <tr>
+                          <th className="text-left px-4 py-2">Producto</th>
+                          <th className="text-right px-4 py-2">Kg vend.</th>
+                          <th className="text-right px-4 py-2">Ventas</th>
+                          <th className="text-right px-4 py-2">Kg compr.</th>
+                          <th className="text-right px-4 py-2">Compras</th>
+                          <th className="text-right px-4 py-2">Margen</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {datosRentabilidad.map((r) => (
+                          <tr key={r.product_id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-medium text-gray-800">
+                              {r.product?.name ?? '—'}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
+                              {Number(r.sales_kg).toFixed(1)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-green-700">
+                              {formatCOP(r.sales_total)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
+                              {Number(r.purchase_kg).toFixed(1)}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-blue-700">
+                              {formatCOP(r.purchase_total)}
+                            </td>
+                            <td
+                              className={`px-4 py-2.5 text-right tabular-nums font-semibold ${
+                                r.margin >= 0 ? 'text-[#1a365d]' : 'text-red-600'
+                              }`}
+                            >
+                              {formatCOP(r.margin)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState mensaje="Sin movimientos de venta o compra en este período" />
+              )}
+            </div>
+          )}
+
+          {/* ── TAB COSECHAS / LABORES ── */}
+          {tab === 'labores' && (
+            <div className="space-y-4">
+              {metaLabores && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-2xl font-bold text-[#1a365d]">{metaLabores.harvest_count}</p>
+                    <p className="text-xs text-gray-400 mt-1">Cosechas</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-2xl font-bold text-[#1a365d]">{Number(metaLabores.total_kg).toFixed(1)}</p>
+                    <p className="text-xs text-gray-400 mt-1">kg cosechados</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{metaLabores.worker_entries}</p>
+                    <p className="text-xs text-gray-400 mt-1">Pagos registrados</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm p-4 text-center">
+                    <p className="text-lg font-bold text-[#1a365d] leading-tight">
+                      {formatCOP(metaLabores.total_paid)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Total pagado</p>
+                  </div>
+                </div>
+              )}
+
+              {datosLabores?.by_crop?.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Por cultivo
+                  </p>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-400 text-xs">
+                      <tr>
+                        <th className="text-left px-4 py-2">Cultivo</th>
+                        <th className="text-right px-4 py-2">Kg</th>
+                        <th className="text-right px-4 py-2">Pagado</th>
+                        <th className="text-center px-4 py-2">Labores</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {datosLabores.by_crop.map((row) => (
+                        <tr key={row.crop} className="hover:bg-gray-50">
+                          <td className="px-4 py-2.5 font-medium text-gray-800">{row.crop}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{Number(row.quantity_kg).toFixed(1)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums font-medium text-[#1a365d]">
+                            {formatCOP(row.total_paid)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center tabular-nums text-gray-500">{row.task_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {datosLabores?.by_date?.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Por fecha
+                  </p>
+                  <div className="divide-y divide-gray-50">
+                    {datosLabores.by_date.map((row) => (
+                      <div key={row.date} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{formatFechaCorta(row.date)}</p>
+                          <p className="text-xs text-gray-400">{row.task_count} cosecha{row.task_count !== 1 ? 's' : ''}</p>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="font-semibold tabular-nums text-[#1a365d]">{Number(row.quantity_kg).toFixed(1)} kg</p>
+                          <p className="text-xs text-amber-700 tabular-nums">{formatCOP(row.total_paid)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {datosLabores?.tasks?.length > 0 ? (
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Detalle ({datosLabores.tasks.length})
+                  </p>
+                  <div className="divide-y divide-gray-50">
+                    {datosLabores.tasks.map((t) => (
+                      <div key={t.id} className="px-4 py-3">
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">
+                              {t.crop || 'Sin cultivo'} · {formatFechaCorta(t.date)}
+                            </p>
+                            <p className="text-xs text-gray-400">{t.task_type}</p>
+                          </div>
+                          <div className="text-right text-sm shrink-0">
+                            <p className="font-semibold tabular-nums">{Number(t.quantity_kg).toFixed(1)} kg</p>
+                            <p className="text-xs text-amber-700">{formatCOP(t.total_paid)}</p>
+                          </div>
+                        </div>
+                        {t.workers?.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {t.workers.map((w) => (
+                              <p key={w.id} className="text-xs text-gray-500 flex justify-between gap-2">
+                                <span>{w.worker_name} · {PAYMENT_MODE_LABEL[w.payment_mode]}</span>
+                                <span className="tabular-nums shrink-0">{formatCOP(w.total_paid)}</span>
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                !cargandoLabores && (
+                  <EmptyState mensaje="Sin cosechas registradas en este período" />
+                )
               )}
             </div>
           )}

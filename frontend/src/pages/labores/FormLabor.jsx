@@ -5,7 +5,9 @@ import {
   TIPOS_LABOR,
   buildTaskTypeValue,
   parseTaskTypeForForm,
+  calcularPagoColaborador,
 } from '../../lib/taskTypes'
+import { PAYMENT_MODE_LABEL } from '../../constants/enums'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 
@@ -17,6 +19,14 @@ const fechaInput = (valor) => {
 const responsableValor = (labor) => labor?.responsible ?? labor?.assigned_to ?? ''
 
 const lineaInsumoVacia = () => ({ id: Math.random(), supply_id: '', quantity_used: '' })
+
+const lineaColaboradorVacia = () => ({
+  id: Math.random(),
+  worker_name: '',
+  payment_mode: 'per_kg',
+  quantity_kg: '',
+  rate: '',
+})
 
 export default function FormLabor({ labor, onGuardado, onCerrar }) {
   const esEdicion = !!labor
@@ -51,6 +61,21 @@ export default function FormLabor({ labor, onGuardado, onCerrar }) {
     return [lineaInsumoVacia()]
   })
 
+  const [lineasColaborador, setLineasColaborador] = useState(() => {
+    if (labor?.workers?.length) {
+      return labor.workers.map((w) => ({
+        id: Math.random(),
+        worker_name: w.worker_name ?? '',
+        payment_mode: w.payment_mode ?? 'per_kg',
+        quantity_kg: w.quantity_kg != null ? String(w.quantity_kg) : '',
+        rate: w.rate != null ? String(w.rate) : '',
+      }))
+    }
+    return [lineaColaboradorVacia()]
+  })
+
+  const esCosecha = form.task_type === 'Cosecha'
+
   useEffect(() => {
     getInsumos().then(({ data }) => setInsumos(data.data)).catch(() => {})
   }, [])
@@ -62,6 +87,12 @@ export default function FormLabor({ labor, onGuardado, onCerrar }) {
 
   const agregarLinea = () => setLineasInsumo((prev) => [...prev, lineaInsumoVacia()])
   const eliminarLinea = (id) => setLineasInsumo((prev) => prev.filter((l) => l.id !== id))
+
+  const actualizarColaborador = (id, campo, valor) =>
+    setLineasColaborador((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
+
+  const agregarColaborador = () => setLineasColaborador((prev) => [...prev, lineaColaboradorVacia()])
+  const eliminarColaborador = (id) => setLineasColaborador((prev) => prev.filter((l) => l.id !== id))
 
   const handleIniciarCrearInsumo = (name, lineaId) => {
     setPendingInsumo({ name, lineaId })
@@ -105,6 +136,21 @@ export default function FormLabor({ labor, onGuardado, onCerrar }) {
       }
     }
 
+    if (esCosecha) {
+      const colaboradoresValidos = lineasColaborador.filter((l) => l.worker_name.trim() && l.rate)
+      if (colaboradoresValidos.length === 0 && !form.responsible.trim()) {
+        setError('En cosecha registra al menos un colaborador con tarifa o un responsable.')
+        return
+      }
+      const faltaKg = colaboradoresValidos.some(
+        (l) => l.payment_mode === 'per_kg' && (!l.quantity_kg || Number(l.quantity_kg) <= 0),
+      )
+      if (faltaKg) {
+        setError('Indica los kg cosechados para colaboradores pagados por kg.')
+        return
+      }
+    }
+
     setGuardando(true)
     try {
       const payload = {
@@ -121,6 +167,18 @@ export default function FormLabor({ labor, onGuardado, onCerrar }) {
           payload.supplies = lineasValidas.map((l) => ({
             supply_id:     l.supply_id,
             quantity_used: l.quantity_used,
+          }))
+        }
+      }
+
+      if (esCosecha) {
+        const colaboradoresValidos = lineasColaborador.filter((l) => l.worker_name.trim() && l.rate)
+        if (colaboradoresValidos.length > 0) {
+          payload.workers = colaboradoresValidos.map((l) => ({
+            worker_name:   l.worker_name.trim(),
+            payment_mode:  l.payment_mode,
+            rate:          Number(l.rate),
+            quantity_kg:   l.payment_mode === 'per_kg' ? Number(l.quantity_kg) : undefined,
           }))
         }
       }
@@ -204,12 +262,113 @@ export default function FormLabor({ labor, onGuardado, onCerrar }) {
         <label className="block text-xs font-medium text-gray-500 mb-1">Responsable</label>
         <input
           type="text"
-          placeholder="Nombre de quien realizó la labor"
+          placeholder={esCosecha ? 'Opcional si registras colaboradores abajo' : 'Nombre de quien realizó la labor'}
           value={form.responsible}
           onChange={(e) => set('responsible', e.target.value)}
           className={inputClass}
         />
       </div>
+
+      {esCosecha && (
+        <div className="space-y-3 border border-amber-100 bg-amber-50/50 rounded-xl p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-[#1a365d]">Colaboradores de cosecha</p>
+              <p className="text-xs text-gray-500">Kg y pago por persona sin salir del formulario</p>
+            </div>
+            <button
+              type="button"
+              onClick={agregarColaborador}
+              className="text-xs text-[#f56523] font-semibold hover:underline shrink-0"
+            >
+              + Colaborador
+            </button>
+          </div>
+
+          {lineasColaborador.map((linea, idx) => {
+            const total = calcularPagoColaborador(linea)
+            return (
+              <div key={linea.id} className="bg-white rounded-xl p-3 space-y-2 border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">#{idx + 1}</span>
+                  {lineasColaborador.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => eliminarColaborador(linea.id)}
+                      className="text-xs text-red-400 hover:text-red-600"
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Nombre del colaborador *"
+                  value={linea.worker_name}
+                  onChange={(e) => actualizarColaborador(linea.id, 'worker_name', e.target.value)}
+                  className={inputClass}
+                />
+
+                <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                  {Object.entries(PAYMENT_MODE_LABEL).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => actualizarColaborador(linea.id, 'payment_mode', value)}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                        linea.payment_mode === value
+                          ? 'bg-[#1a365d] text-white'
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {linea.payment_mode === 'per_kg' && (
+                    <div>
+                      <label className="text-xs text-gray-400 mb-0.5 block">Kg cosechados *</label>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="0.1"
+                        placeholder="0"
+                        value={linea.quantity_kg}
+                        onChange={(e) => actualizarColaborador(linea.id, 'quantity_kg', e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
+                  <div className={linea.payment_mode === 'per_day' ? 'col-span-2' : ''}>
+                    <label className="text-xs text-gray-400 mb-0.5 block">
+                      Tarifa ({linea.payment_mode === 'per_kg' ? '$/kg' : '$/día'}) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      placeholder="0"
+                      value={linea.rate}
+                      onChange={(e) => actualizarColaborador(linea.id, 'rate', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500 text-right">
+                  Total:{' '}
+                  <span className="font-semibold text-[#1a365d] tabular-nums">
+                    {total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                  </span>
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Descripción (opcional)</label>

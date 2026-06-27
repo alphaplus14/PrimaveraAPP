@@ -1,16 +1,22 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getProductos } from '../../api/productos'
+import { getProductos, getProductosConCompras } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
 import Modal from '../../components/ui/Modal'
 import Buscador from '../../components/ui/Buscador'
 import Paginacion from '../../components/ui/Paginacion'
 import FormProducto from './FormProducto'
 import { CATEGORY_LABEL, CATEGORY_BADGE } from '../../constants/enums'
-import { formatStock } from '../../lib/dashboard'
+import { formatCOP, formatKg, formatStock } from '../../lib/dashboard'
 
 const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
-const FILTROS = ['todos', 'own', 'purchased', 'pulp']
+const FILTROS = ['todos', 'own', 'purchased', 'pulp', 'con_compras']
 const POR_PAGINA = 15
+
+const etiquetaFiltro = (f) => {
+  if (f === 'todos') return 'Todos'
+  if (f === 'con_compras') return 'Con compras'
+  return CATEGORY_LABEL[f]
+}
 
 export default function Productos() {
   const [filtro, setFiltro] = useState('todos')
@@ -19,13 +25,18 @@ export default function Productos() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [productoEditar, setProductoEditar] = useState(null)
 
-  const { data, cargando, recargar } = useApi(getProductos)
+  const esConCompras = filtro === 'con_compras'
+  const { data, cargando, recargar } = useApi(
+    () => (esConCompras ? getProductosConCompras() : getProductos()),
+    [esConCompras],
+  )
   const todos = data ?? []
 
   const lista = useMemo(
     () =>
       todos.filter((p) => {
-        const coincideCategoria = filtro === 'todos' || p.category === filtro
+        const coincideCategoria =
+          filtro === 'todos' || filtro === 'con_compras' || p.category === filtro
         const coincideBusqueda = p.name.toLowerCase().includes(busqueda.toLowerCase())
         return coincideCategoria && coincideBusqueda
       }),
@@ -93,10 +104,18 @@ export default function Productos() {
                 : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
             }`}
           >
-            {f === 'todos' ? 'Todos' : CATEGORY_LABEL[f]}
+            {etiquetaFiltro(f)}
           </button>
         ))}
       </div>
+
+      {esConCompras && (
+        <p className="text-xs text-gray-500 mb-4 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          <strong className="text-amber-800">Comprado</strong> es la categoría del catálogo.{' '}
+          <strong className="text-amber-800">Con compras</strong> muestra solo productos con compras
+          de reventa registradas y el total acumulado en la base de datos.
+        </p>
+      )}
 
       {cargando ? (
         <div className="space-y-2">
@@ -108,9 +127,13 @@ export default function Productos() {
         <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
           <p className="text-4xl mb-3">🌿</p>
           <p className="text-sm mb-3">
-            {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos aún.'}
+            {busqueda
+              ? `Sin resultados para "${busqueda}"`
+              : esConCompras
+                ? 'Ningún producto tiene compras de reventa registradas.'
+                : 'No hay productos aún.'}
           </p>
-          {!busqueda && (
+          {!busqueda && !esConCompras && (
             <button
               type="button"
               onClick={handleNuevo}
@@ -124,7 +147,12 @@ export default function Productos() {
         <>
           <div className="md:hidden space-y-3">
             {paginaItems.map((p) => (
-              <FilaProductoMovil key={p.id} producto={p} onEditar={handleEditar} />
+              <FilaProductoMovil
+                key={p.id}
+                producto={p}
+                onEditar={handleEditar}
+                mostrarCompras={esConCompras}
+              />
             ))}
           </div>
 
@@ -134,8 +162,18 @@ export default function Productos() {
                 <tr>
                   <th className="text-left px-4 py-3">Nombre</th>
                   <th className="text-left px-4 py-3">Categoría</th>
-                  <th className="text-center px-4 py-3">Para pulpa</th>
-                  <th className="text-right px-4 py-3">Stock</th>
+                  {esConCompras ? (
+                    <>
+                      <th className="text-right px-4 py-3">Kg comprados</th>
+                      <th className="text-right px-4 py-3">Total compras</th>
+                      <th className="text-center px-4 py-3">Nº compras</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="text-center px-4 py-3">Para pulpa</th>
+                      <th className="text-right px-4 py-3">Stock</th>
+                    </>
+                  )}
                   <th className="text-center px-4 py-3">Estado</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -151,14 +189,30 @@ export default function Productos() {
                         {CATEGORY_LABEL[p.category]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-400">
-                      {p.is_pulp_fruit ? '✓' : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                      {p.inventory
-                        ? formatStock(p, p.inventory.quantity_kg)
-                        : '—'}
-                    </td>
+                    {esConCompras ? (
+                      <>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                          {formatKg(p.purchase_summary?.purchased_kg)}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium text-[#1a365d]">
+                          {formatCOP(p.purchase_summary?.purchased_total)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums text-gray-600">
+                          {p.purchase_summary?.purchase_count ?? 0}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3 text-center text-gray-400">
+                          {p.is_pulp_fruit ? '✓' : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                          {p.inventory
+                            ? formatStock(p, p.inventory.quantity_kg)
+                            : '—'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -227,7 +281,7 @@ function BotonEditar({ producto, onClick, className = 'w-9 h-9' }) {
   )
 }
 
-function FilaProductoMovil({ producto: p, onEditar }) {
+function FilaProductoMovil({ producto: p, onEditar, mostrarCompras = false }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <div className="flex items-start gap-3">
@@ -245,19 +299,32 @@ function FilaProductoMovil({ producto: p, onEditar }) {
             {!p.active && (
               <span className="text-xs text-gray-400">Inactivo</span>
             )}
-            {p.is_pulp_fruit && (
+            {!mostrarCompras && p.is_pulp_fruit && (
               <span className="text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Pulpa</span>
             )}
           </div>
           <p className="font-semibold text-gray-800 truncate">{p.name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Stock:{' '}
-            <span className="font-medium text-gray-600 tabular-nums">
-              {p.inventory
-                ? formatStock(p, p.inventory.quantity_kg)
-                : '—'}
-            </span>
-          </p>
+          {mostrarCompras ? (
+            <p className="text-xs text-gray-500 mt-1 space-y-0.5">
+              <span className="block">
+                Comprado: {formatKg(p.purchase_summary?.purchased_kg)}
+              </span>
+              <span className="block font-medium text-[#1a365d]">
+                {formatCOP(p.purchase_summary?.purchased_total)} ·{' '}
+                {p.purchase_summary?.purchase_count ?? 0} compra
+                {(p.purchase_summary?.purchase_count ?? 0) !== 1 ? 's' : ''}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Stock:{' '}
+              <span className="font-medium text-gray-600 tabular-nums">
+                {p.inventory
+                  ? formatStock(p, p.inventory.quantity_kg)
+                  : '—'}
+              </span>
+            </p>
+          )}
         </button>
         <BotonEditar producto={p} onClick={() => onEditar(p)} className="w-10 h-10 shrink-0" />
       </div>

@@ -82,3 +82,15 @@ export function buildTaskTypeValue(selected, otroTexto) {
   }
   return selected
 }
+
+export function esLaborCosecha(taskType) {
+  return findCanonicalType(taskType) === 'Cosecha'
+}
+
+export function calcularPagoColaborador({ payment_mode, quantity_kg, rate }) {
+  const r = Number(rate) || 0
+  if (payment_mode === 'per_kg') {
+    return Math.round((Number(quantity_kg) || 0) * r)
+  }
+  return Math.round(r)
+}
