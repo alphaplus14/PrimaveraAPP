@@ -19,6 +19,7 @@ class User extends Authenticatable
         'email',
         'password',
         'rol',
+        'last_price_review_date',
     ];
 
     protected $hidden = [
@@ -34,6 +35,7 @@ class User extends Authenticatable
             'email_verified_at'       => 'datetime',
             'password'                => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'last_price_review_date'  => 'date',
         ];
     }
 }

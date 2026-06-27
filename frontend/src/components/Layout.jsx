@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { getPriceReviewStatus } from '../api/precios'
 import { FLUX } from '../lib/dashboard'
 import Modal from './ui/Modal'
+import ModalRevisionPrecios from './ModalRevisionPrecios'
 import TwoFactorSetup from './TwoFactorSetup'
 
 const nav = [
@@ -18,6 +20,16 @@ const nav = [
 
 const STORAGE_SIDEBAR = 'primavera-sidebar-collapsed'
 const STORAGE_MOBILE_NAV = 'primavera-mobile-nav-open'
+
+const dismissPreciosHoy = () => {
+  const hoy = new Date().toISOString().split('T')[0]
+  sessionStorage.setItem(`precios_modal_dismissed_${hoy}`, '1')
+}
+
+const preciosDismissedHoy = () => {
+  const hoy = new Date().toISOString().split('T')[0]
+  return sessionStorage.getItem(`precios_modal_dismissed_${hoy}`) === '1'
+}
 
 function NavIcon({ src, active, className = '', muted = false }) {
   return (
@@ -56,10 +68,11 @@ function ChevronIcon({ direction = 'left', className = '' }) {
 }
 
 export default function Layout() {
-  const { user, cerrarSesion } = useAuth()
+  const { user, cerrarSesion, actualizarUsuario } = useAuth()
   const navigate = useNavigate()
 
   const [mostrarSeguridad, setMostrarSeguridad] = useState(false)
+  const [mostrarRevisionPrecios, setMostrarRevisionPrecios] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(STORAGE_SIDEBAR) === 'true',
   )
@@ -74,6 +87,28 @@ export default function Layout() {
   useEffect(() => {
     localStorage.setItem(STORAGE_MOBILE_NAV, String(mobileNavOpen))
   }, [mobileNavOpen])
+
+  useEffect(() => {
+    if (!user) return
+
+    getPriceReviewStatus()
+      .then(({ data }) => {
+        if (data.data?.needs_review && !preciosDismissedHoy()) {
+          setMostrarRevisionPrecios(true)
+        }
+      })
+      .catch(() => {})
+  }, [user?.id])
+
+  const handleCerrarRevision = () => {
+    dismissPreciosHoy()
+    setMostrarRevisionPrecios(false)
+  }
+
+  const handleRevisionCompletada = (userData) => {
+    actualizarUsuario(userData)
+    setMostrarRevisionPrecios(false)
+  }
 
   const handleLogout = async () => {
     await cerrarSesion()
@@ -229,6 +264,13 @@ export default function Layout() {
         >
           <ChevronIcon direction="up" className="w-5 h-5" />
         </button>
+      )}
+
+      {mostrarRevisionPrecios && (
+        <ModalRevisionPrecios
+          onCerrar={handleCerrarRevision}
+          onCompletado={handleRevisionCompletada}
+        />
       )}
     </div>
   )

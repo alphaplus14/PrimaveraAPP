@@ -23,7 +23,7 @@ class TransformacionDemoSeeder extends Seeder
     public function run(): void
     {
         $pares = Producto::query()
-            ->where('is_fruit_for_pulp', true)
+            ->where('is_pulp_fruit', true)
             ->whereNotNull('related_pulp_id')
             ->get(['id', 'related_pulp_id', 'name']);
 

@@ -19,6 +19,7 @@ class IssueSpaToken
                     'email' => $user->email,
                     'rol' => $user->rol,
                     'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+                    'last_price_review_date' => $user->last_price_review_date?->toDateString(),
                 ],
                 'token' => $token,
             ],
