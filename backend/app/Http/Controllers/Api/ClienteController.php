@@ -27,6 +27,11 @@ class ClienteController extends Controller
         return response()->json(['data' => Cliente::create($data)], 201);
     }
 
+    public function show(Cliente $cliente)
+    {
+        return response()->json(['data' => $cliente]);
+    }
+
     public function update(Request $request, Cliente $cliente)
     {
         $data = $request->validate([
