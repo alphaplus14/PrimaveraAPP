@@ -8,7 +8,7 @@ import Paginacion from '../../components/ui/Paginacion'
 import { SUPPLY_TYPE_LABEL } from '../../constants/enums'
 import { formatStock } from '../../lib/dashboard'
 
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 const TABS = [
   { id: 'productos', label: 'Productos' },
   { id: 'insumos', label: 'Insumos' },
@@ -144,23 +144,23 @@ export default function Inventario() {
       ) : tab === 'productos' ? (
         <>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Producto</th>
-                  <th className="text-right px-4 py-3">Stock</th>
-                  <th className="text-right px-4 py-3 hidden md:table-cell">Actualizado</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-3 py-2">Producto</th>
+                  <th className="text-right px-3 py-2">Stock</th>
+                  <th className="text-right px-3 py-2 hidden md:table-cell">Actualizado</th>
+                  <th className="px-2 py-2 w-16" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginaItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-800">
                       {item.product?.name}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                      className={`px-3 py-2 text-right font-semibold tabular-nums ${
                         Number(item.quantity_kg) === 0
                           ? 'text-red-400'
                           : Number(item.quantity_kg) < 5
@@ -170,16 +170,16 @@ export default function Inventario() {
                     >
                       {formatStock(item.product, item.quantity_kg, { corto: true })}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-400 text-xs hidden md:table-cell">
+                    <td className="px-3 py-2 text-right text-gray-400 hidden md:table-cell">
                       {item.stock_updated_at
                         ? new Date(item.stock_updated_at).toLocaleDateString('es-CO')
                         : '—'}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-2 text-right">
                       <button
                         type="button"
                         onClick={() => abrirAjuste(item)}
-                        className="text-xs text-[#1a365d] hover:text-[#f56523] font-medium transition-colors"
+                        className="text-[11px] text-[#1a365d] hover:text-[#f56523] font-medium transition-colors"
                       >
                         Ajustar
                       </button>
@@ -188,20 +188,24 @@ export default function Inventario() {
                 ))}
               </tbody>
             </table>
-          </div>
 
-          <Paginacion
-            pagina={paginaActual}
-            totalPaginas={totalPaginas}
-            total={lista.length}
-            totalGeneral={todosProductos.length}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={!!busqueda}
-            sustantivo="producto"
-            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
-            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-          />
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={paginaActual}
+                totalPaginas={totalPaginas}
+                total={lista.length}
+                totalGeneral={todosProductos.length}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={!!busqueda}
+                sustantivo="producto"
+                compact
+                embedded
+                onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+                onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              />
+            </div>
+          </div>
         </>
       ) : (
         <>
@@ -237,26 +241,26 @@ export default function Inventario() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Insumo</th>
-                  <th className="text-left px-4 py-3">Tipo</th>
-                  <th className="text-left px-4 py-3">Unidad</th>
-                  <th className="text-right px-4 py-3">Stock</th>
-                  <th className="text-center px-4 py-3">Estado</th>
+                  <th className="text-left px-3 py-2">Insumo</th>
+                  <th className="text-left px-3 py-2">Tipo</th>
+                  <th className="text-left px-3 py-2">Unidad</th>
+                  <th className="text-right px-3 py-2">Stock</th>
+                  <th className="text-center px-3 py-2">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginaItems.map((insumo) => (
                   <tr key={insumo.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-800">{insumo.name}</td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-3 py-2 font-medium text-gray-800">{insumo.name}</td>
+                    <td className="px-3 py-2 text-gray-600">
                       {SUPPLY_TYPE_LABEL[insumo.type] ?? insumo.type}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{insumo.unit}</td>
+                    <td className="px-3 py-2 text-gray-500">{insumo.unit}</td>
                     <td
-                      className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                      className={`px-3 py-2 text-right font-semibold tabular-nums ${
                         Number(insumo.current_stock) === 0
                           ? 'text-red-400'
                           : Number(insumo.current_stock) < 5
@@ -266,9 +270,9 @@ export default function Inventario() {
                     >
                       {Number(insumo.current_stock).toLocaleString('es-CO')} {insumo.unit}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        className={`px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
                           insumo.active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
                         }`}
                       >
@@ -279,20 +283,40 @@ export default function Inventario() {
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={paginaActual}
+                totalPaginas={totalPaginas}
+                total={lista.length}
+                totalGeneral={todosInsumos.length}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={!!busqueda}
+                sustantivo="insumo"
+                compact
+                embedded
+                onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+                onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={paginaActual}
-            totalPaginas={totalPaginas}
-            total={lista.length}
-            totalGeneral={todosInsumos.length}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={!!busqueda}
-            sustantivo="insumo"
-            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
-            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={paginaActual}
+              totalPaginas={totalPaginas}
+              total={lista.length}
+              totalGeneral={todosInsumos.length}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={!!busqueda}
+              sustantivo="insumo"
+              compact
+              onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+              onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            />
+          </div>
         </>
       )}
 
