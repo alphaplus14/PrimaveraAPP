@@ -26,7 +26,13 @@ return new class extends Migration
         });
 
         if (Schema::hasColumn('purchases', 'product_id')) {
-            DB::statement('ALTER TABLE purchases MODIFY product_id BIGINT UNSIGNED NULL');
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('ALTER TABLE purchases MODIFY product_id BIGINT UNSIGNED NULL');
+            } else {
+                Schema::table('purchases', function (Blueprint $table) {
+                    $table->unsignedBigInteger('product_id')->nullable()->change();
+                });
+            }
         }
     }
 
@@ -43,7 +49,13 @@ return new class extends Migration
         });
 
         if (Schema::hasColumn('purchases', 'product_id')) {
-            DB::statement('ALTER TABLE purchases MODIFY product_id BIGINT UNSIGNED NOT NULL');
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement('ALTER TABLE purchases MODIFY product_id BIGINT UNSIGNED NOT NULL');
+            } else {
+                Schema::table('purchases', function (Blueprint $table) {
+                    $table->unsignedBigInteger('product_id')->nullable(false)->change();
+                });
+            }
         }
     }
 };

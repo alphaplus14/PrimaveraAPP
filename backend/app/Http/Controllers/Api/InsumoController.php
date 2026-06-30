@@ -32,6 +32,11 @@ class InsumoController extends Controller
         return response()->json(['data' => Insumo::create($data)], 201);
     }
 
+    public function show(Insumo $insumo)
+    {
+        return response()->json(['data' => $insumo]);
+    }
+
     public function update(Request $request, Insumo $insumo)
     {
         $data = $request->validate([
@@ -44,5 +49,23 @@ class InsumoController extends Controller
 
         $insumo->update($data);
         return response()->json(['data' => $insumo]);
+    }
+
+    public function destroy(Insumo $insumo)
+    {
+        // Si el insumo ya se usó en labores, no se borra para no romper el
+        // historial: se desactiva (deja de aparecer en selección, conserva datos).
+        if ($insumo->farmTaskSupplies()->exists()) {
+            $insumo->update(['active' => false]);
+
+            return response()->json([
+                'data'    => $insumo,
+                'message' => 'El insumo tiene labores asociadas; se desactivó en lugar de eliminarlo.',
+            ]);
+        }
+
+        $insumo->delete();
+
+        return response()->json(null, 204);
     }
 }

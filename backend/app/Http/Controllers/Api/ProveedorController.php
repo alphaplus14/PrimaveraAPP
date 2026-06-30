@@ -27,6 +27,11 @@ class ProveedorController extends Controller
         return response()->json(['data' => Proveedor::create($data)], 201);
     }
 
+    public function show(Proveedor $proveedor)
+    {
+        return response()->json(['data' => $proveedor]);
+    }
+
     public function update(Request $request, Proveedor $proveedor)
     {
         $data = $request->validate([

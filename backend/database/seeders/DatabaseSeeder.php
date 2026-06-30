@@ -12,20 +12,28 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // El admin inicial se puede configurar por entorno para no dejar
+        // credenciales fijas en producción.
         User::firstOrCreate(
-            ['email' => 'admin@primavera.com'],
+            ['email' => env('ADMIN_EMAIL', 'admin@primavera.com')],
             [
-                'name' => 'Administrador',
-                'password' => bcrypt('admin123'),
+                'name' => env('ADMIN_NAME', 'Administrador'),
+                'password' => bcrypt(env('ADMIN_PASSWORD', 'admin123')),
                 'rol' => 'admin',
             ]
         );
 
-        $this->call([
+        $seeders = [
             ProductoSeeder::class,
             PrecioSeeder::class,
             ClienteSeeder::class,
-            DashboardDemoSeeder::class,
-        ]);
+        ];
+
+        // Los datos de demostración solo se cargan fuera de producción.
+        if (! app()->environment('production')) {
+            $seeders[] = DashboardDemoSeeder::class;
+        }
+
+        $this->call($seeders);
     }
 }
