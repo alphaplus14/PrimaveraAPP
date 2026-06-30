@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { crearCompra, actualizarCompra, getProveedores, crearProveedor } from '../../api/compras'
 import { getProductos } from '../../api/productos'
+import { getInsumos, crearInsumo } from '../../api/labores'
 import SelectBuscable from '../../components/ui/SelectBuscable'
+import { SUPPLY_TYPE_LABEL } from '../../constants/enums'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
@@ -9,13 +11,15 @@ const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
 const lineaVacia = () => ({
   id: Math.random(),
   product_id: '',
+  supply_id: '',
   quantity_kg: '',
   unit_price: '',
 })
 
 const lineaDesdeCompra = (compra) => ({
   id: Math.random(),
-  product_id: String(compra.product_id),
+  product_id: compra.product_id ? String(compra.product_id) : '',
+  supply_id: compra.supply_id ? String(compra.supply_id) : '',
   quantity_kg: String(compra.quantity_kg),
   unit_price: String(compra.unit_price),
 })
@@ -27,28 +31,45 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
   const esEdicion = !!compra
 
   const [productos, setProductos] = useState([])
+  const [insumos, setInsumos] = useState([])
   const [proveedores, setProveedores] = useState([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
   const [pendingProveedor, setPendingProveedor] = useState(null)
   const [tipoProveedor, setTipoProveedor] = useState('neighbor')
+  const [pendingInsumo, setPendingInsumo] = useState(null)
+  const [formInsumo, setFormInsumo] = useState({ type: 'fertilizer', unit: '' })
 
   const [cabecera, setCabecera] = useState({
     date: fechaInput(compra?.date),
     supplier_id: compra ? String(compra.supplier_id) : '',
+    purchase_type: compra?.purchase_type ?? 'resale',
     notes: compra?.notes ?? '',
   })
   const [lineas, setLineas] = useState(() =>
     esEdicion ? [lineaDesdeCompra(compra)] : [lineaVacia()],
   )
 
+  const esInsumo = cabecera.purchase_type === 'farm_supply'
+
   useEffect(() => {
-    Promise.all([getProductos(), getProveedores()]).then(([p, prov]) => {
+    Promise.all([
+      getProductos(),
+      getProveedores(),
+      getInsumos({ todos: 1 }),
+    ]).then(([p, prov, ins]) => {
       setProductos(p.data.data.filter((x) => x.active))
       setProveedores(prov.data.data.filter((x) => x.active))
+      setInsumos(ins.data.data ?? [])
     })
   }, [])
+
+  const cambiarConcepto = (tipo) => {
+    if (esEdicion) return
+    setCabecera((c) => ({ ...c, purchase_type: tipo }))
+    setLineas([lineaVacia()])
+  }
 
   const actualizarLinea = (id, campo, valor) =>
     setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
@@ -61,6 +82,12 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
       sum + (l.quantity_kg && l.unit_price ? Number(l.quantity_kg) * Number(l.unit_price) : 0),
     0,
   )
+
+  const unidadLinea = (linea) => {
+    if (!esInsumo) return 'kg'
+    const ins = insumos.find((i) => String(i.id) === String(linea.supply_id))
+    return ins?.unit ?? 'unidad'
+  }
 
   const handleIniciarCrearProveedor = (name) => {
     setPendingProveedor({ name })
@@ -82,14 +109,47 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
     }
   }
 
+  const handleIniciarCrearInsumo = (name, lineaId) => {
+    setPendingInsumo({ name, lineaId })
+    setFormInsumo({ type: 'fertilizer', unit: '' })
+  }
+
+  const handleConfirmarInsumo = async () => {
+    if (!formInsumo.unit.trim()) {
+      setError('Indica la unidad del insumo.')
+      return
+    }
+    try {
+      const { data } = await crearInsumo({
+        name: pendingInsumo.name,
+        type: formInsumo.type,
+        unit: formInsumo.unit,
+      })
+      const nuevo = data.data
+      setInsumos((prev) => [...prev, nuevo])
+      actualizarLinea(pendingInsumo.lineaId, 'supply_id', String(nuevo.id))
+      setPendingInsumo(null)
+      setError(null)
+    } catch {
+      setError('No se pudo crear el insumo.')
+    }
+  }
+
   const payloadLinea = (linea) => ({
     date: cabecera.date,
     supplier_id: cabecera.supplier_id,
+    purchase_type: cabecera.purchase_type,
     notes: cabecera.notes || undefined,
-    product_id: linea.product_id,
+    product_id: esInsumo ? undefined : linea.product_id,
+    supply_id: esInsumo ? linea.supply_id : undefined,
     quantity_kg: linea.quantity_kg,
     unit_price: linea.unit_price,
   })
+
+  const lineaValida = (l) => {
+    const itemOk = esInsumo ? l.supply_id : l.product_id
+    return itemOk && l.quantity_kg && l.unit_price
+  }
 
   const handleSubmit = async () => {
     setError(null)
@@ -97,7 +157,7 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
       setError('Selecciona un proveedor.')
       return
     }
-    if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
+    if (lineas.some((l) => !lineaValida(l))) {
       setError('Completa todos los campos de cada línea.')
       return
     }
@@ -119,6 +179,31 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
 
   return (
     <div className="space-y-4">
+      {!esEdicion && (
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-2">Concepto de compra</label>
+          <div className="flex rounded-xl overflow-hidden border border-gray-200">
+            {[
+              ['resale', 'Para venta (producto)'],
+              ['farm_supply', 'Insumo de finca'],
+            ].map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => cambiarConcepto(v)}
+                className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                  cabecera.purchase_type === v
+                    ? 'bg-[#1a365d] text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
@@ -184,7 +269,7 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-            {esEdicion ? 'Producto' : 'Productos'}
+            {esInsumo ? 'Insumos' : esEdicion ? 'Producto' : 'Productos'}
           </label>
           {!esEdicion && (
             <button
@@ -192,7 +277,7 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
               onClick={agregarLinea}
               className="text-xs text-[#f56523] font-semibold hover:underline"
             >
-              + Agregar producto
+              + Agregar línea
             </button>
           )}
         </div>
@@ -214,16 +299,86 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
               </div>
             )}
 
-            <SelectBuscable
-              opciones={productos.map((p) => ({ value: p.id, label: p.name }))}
-              value={linea.product_id}
-              onChange={(v) => actualizarLinea(linea.id, 'product_id', v)}
-              placeholder="Buscar producto..."
-            />
+            {esInsumo ? (
+              <SelectBuscable
+                opciones={insumos.map((i) => ({
+                  value: i.id,
+                  label: `${i.name} (${SUPPLY_TYPE_LABEL[i.type] ?? i.type})`,
+                }))}
+                value={linea.supply_id}
+                onChange={(v) => actualizarLinea(linea.id, 'supply_id', v)}
+                placeholder="Buscar insumo..."
+                onCrear={(name) => handleIniciarCrearInsumo(name, linea.id)}
+              />
+            ) : (
+              <SelectBuscable
+                opciones={productos.map((p) => ({ value: p.id, label: p.name }))}
+                value={linea.product_id}
+                onChange={(v) => actualizarLinea(linea.id, 'product_id', v)}
+                placeholder="Buscar producto..."
+              />
+            )}
+
+            {pendingInsumo?.lineaId === linea.id && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-semibold text-blue-700">
+                  Nuevo insumo: "{pendingInsumo.name}"
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-0.5 block">Tipo</label>
+                    <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                      {Object.entries(SUPPLY_TYPE_LABEL).map(([v, l]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setFormInsumo((f) => ({ ...f, type: v }))}
+                          className={`flex-1 py-2 text-xs font-medium ${
+                            formInsumo.type === v
+                              ? 'bg-[#1a365d] text-white'
+                              : 'bg-white text-gray-500'
+                          }`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-0.5 block">Unidad *</label>
+                    <input
+                      type="text"
+                      placeholder="L, kg..."
+                      value={formInsumo.unit}
+                      onChange={(e) => setFormInsumo((f) => ({ ...f, unit: e.target.value }))}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmarInsumo}
+                    className="flex-1 bg-[#1a365d] text-white py-2 rounded-lg text-xs font-medium"
+                  >
+                    Crear insumo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingInsumo(null)}
+                    className="px-3 border border-gray-300 rounded-lg text-xs text-gray-400"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-gray-400 mb-0.5 block">Cantidad (kg) *</label>
+                <label className="text-xs text-gray-400 mb-0.5 block">
+                  Cantidad ({unidadLinea(linea)}) *
+                </label>
                 <input
                   type="number"
                   min="0.001"
@@ -235,7 +390,9 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-0.5 block">Precio por kg *</label>
+                <label className="text-xs text-gray-400 mb-0.5 block">
+                  Precio por {unidadLinea(linea)} *
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -297,7 +454,7 @@ export default function FormCompra({ compra, onGuardado, onCerrar }) {
             ? 'Guardando...'
             : esEdicion
               ? 'Guardar cambios'
-              : `Registrar${lineas.length > 1 ? ` (${lineas.length} productos)` : ''}`}
+              : `Registrar${lineas.length > 1 ? ` (${lineas.length} líneas)` : ''}`}
         </button>
       </div>
     </div>

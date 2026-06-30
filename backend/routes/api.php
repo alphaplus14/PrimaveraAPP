@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\InsumoController;
 use App\Http\Controllers\Api\LaborController;
 use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\TwoFactorController;
+use App\Http\Controllers\Api\PriceReviewController;
 
 // Autenticación pública
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,6 +29,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
+    // Revisión diaria de precios
+    Route::get('/user/price-review', [PriceReviewController::class, 'status']);
+    Route::post('/user/price-review/complete', [PriceReviewController::class, 'complete']);
+    Route::post('/user/price-review/skip', [PriceReviewController::class, 'skip']);
+    Route::get('/precios/revision-diaria', [PriceReviewController::class, 'revisionDiaria']);
+
     // 2FA management
     Route::get('/user/two-factor-status', [TwoFactorController::class, 'status']);
     Route::post('/user/two-factor-authentication', [TwoFactorController::class, 'enable']);
@@ -37,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/two-factor-recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes']);
 
     // Catálogo de productos
+    Route::get('productos/con-compras', [ProductoController::class, 'conCompras']);
     Route::apiResource('productos', ProductoController::class);
 
     // Precios (historial por producto)
@@ -69,4 +77,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('reportes/compras', [ReporteController::class, 'compras']);
     Route::get('reportes/inventario', [ReporteController::class, 'inventario']);
     Route::get('reportes/movimientos', [ReporteController::class, 'movimientos']);
+    Route::get('reportes/rentabilidad', [ReporteController::class, 'rentabilidad']);
+    Route::get('reportes/labores', [ReporteController::class, 'labores']);
 });

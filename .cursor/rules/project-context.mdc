@@ -31,3 +31,19 @@ Compradas: mora, guanábana, maracuyá. Propias (fruta por dañarse): guayaba á
 - Web responsive, un usuario admin, auth email/contraseña.
 - Modelo de datos preparado para roles futuros (no implementar permisos aún).
 - Priorizar formularios rápidos para registro diario desde celular en campo.
+
+## Requerimientos ampliados (feedback finca)
+
+Detalle completo en `docs/feedback-stakeholders.md` y matriz implementado/pendiente en `docs/estado-vs-feedback.md`.
+
+Resumen de lo **pedido y aún no implementado**:
+
+1. **Productos:** catálogo sin duplicar ítems; filtro “comprado” basado en compras reales, no solo `category`.
+2. **Inventario:** stock visible de insumos/abonos (`supplies`).
+3. **Compras:** registrar compras de insumos; filtrar reventa vs mantenimiento de finca.
+4. **Precios:** revisión rápida **una vez por día** al entrar (no cada login).
+5. **Labores cosecha:** varios colaboradores, pago por kg o por día, kg por persona, totales diarios.
+6. **Reportes:** margen por producto; reportes de labores/cosecha e insumos por cultivo.
+7. **Lotes y margen real:** costo por lote de compra, pérdidas (costo lote más alto), margen en dashboard — **fase avanzada**.
+
+Reglas que siguen vigentes del MVP: precios con historial, inventario por movimientos, labores con insumos descontando stock.

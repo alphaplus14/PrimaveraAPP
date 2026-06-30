@@ -8,11 +8,15 @@ use Illuminate\Http\Request;
 
 class InsumoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json([
-            'data' => Insumo::where('active', true)->orderBy('name')->get(),
-        ]);
+        $query = Insumo::query()->orderBy('name');
+
+        if (! $request->boolean('todos')) {
+            $query->where('active', true);
+        }
+
+        return response()->json(['data' => $query->get()]);
     }
 
     public function store(Request $request)
