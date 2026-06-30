@@ -1,5 +1,5 @@
-import { createContext, useContext, useState } from 'react'
-import { login as apiLogin, logout as apiLogout } from '../api/auth'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { login as apiLogin, logout as apiLogout, getUsuarioActual } from '../api/auth'
 import { twoFactorChallenge } from '../api/twoFactor'
 
 const AuthContext = createContext(null)
@@ -11,9 +11,46 @@ export function AuthProvider({ children }) {
   })
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState(null)
+  // Mientras se valida el token guardado contra el backend al arrancar
+  const [verificandoSesion, setVerificandoSesion] = useState(
+    () => !!localStorage.getItem('token'),
+  )
 
   // Estado pendiente de 2FA
   const [pending2FA, setPending2FA] = useState(null) // { two_factor_token }
+
+  // Al arrancar, si hay token guardado, confirmamos que siga siendo válido.
+  // Si el backend responde 401, el interceptor de axios ya limpia la sesión;
+  // aquí refrescamos los datos del usuario o lo deslogueamos localmente.
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setVerificandoSesion(false)
+      return
+    }
+
+    let activo = true
+    getUsuarioActual()
+      .then(({ data }) => {
+        if (!activo) return
+        const userData = data.data ?? data
+        localStorage.setItem('user', JSON.stringify(userData))
+        setUser(userData)
+      })
+      .catch(() => {
+        if (!activo) return
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setUser(null)
+      })
+      .finally(() => {
+        if (activo) setVerificandoSesion(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [])
 
   const iniciarSesion = async (email, password) => {
     setCargando(true)
@@ -95,6 +132,7 @@ export function AuthProvider({ children }) {
       user,
       cargando,
       error,
+      verificandoSesion,
       pending2FA,
       iniciarSesion,
       verificar2FA,
