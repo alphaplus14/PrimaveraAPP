@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   getRevisionDiaria,
   completarRevisionPrecios,
   omitirRevisionPrecios,
 } from '../api/precios'
 import Modal from './ui/Modal'
+import Paginacion from './ui/Paginacion'
 import { CATEGORY_LABEL } from '../constants/enums'
 
 const hoy = () => new Date().toISOString().split('T')[0]
+const POR_PAGINA = 10
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
@@ -19,6 +21,7 @@ export default function ModalRevisionPrecios({ onCerrar, onCompletado }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [pagina, setPagina] = useState(1)
 
   useEffect(() => {
     getRevisionDiaria()
@@ -45,9 +48,22 @@ export default function ModalRevisionPrecios({ onCerrar, onCompletado }) {
     }))
   }
 
-  const listaFiltrada = productos.filter((p) =>
-    p.name.toLowerCase().includes(busqueda.toLowerCase()),
+  const listaFiltrada = useMemo(
+    () =>
+      productos.filter((p) =>
+        p.name.toLowerCase().includes(busqueda.toLowerCase()),
+      ),
+    [productos, busqueda],
   )
+
+  const totalPaginas = Math.max(1, Math.ceil(listaFiltrada.length / POR_PAGINA))
+  const paginaActual = Math.min(pagina, totalPaginas)
+  const inicio = (paginaActual - 1) * POR_PAGINA
+  const paginaItems = listaFiltrada.slice(inicio, inicio + POR_PAGINA)
+
+  useEffect(() => {
+    setPagina(1)
+  }, [busqueda])
 
   const construirPayload = () =>
     productos
@@ -129,9 +145,11 @@ export default function ModalRevisionPrecios({ onCerrar, onCompletado }) {
         ) : (
           <div className="max-h-[50vh] overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
             {listaFiltrada.length === 0 ? (
-              <p className="p-4 text-sm text-gray-400 text-center">Sin productos activos.</p>
+              <p className="p-4 text-sm text-gray-400 text-center">
+                {busqueda ? `Sin resultados para "${busqueda}".` : 'Sin productos activos.'}
+              </p>
             ) : (
-              listaFiltrada.map((p) => {
+              paginaItems.map((p) => {
                 const fila = precios[p.id] ?? { retail: '', wholesale: '' }
                 return (
                   <div key={p.id} className="p-3 grid grid-cols-1 sm:grid-cols-[1fr_7rem_7rem] gap-2 sm:gap-3 items-center">
@@ -170,6 +188,22 @@ export default function ModalRevisionPrecios({ onCerrar, onCompletado }) {
               })
             )}
           </div>
+        )}
+
+        {!cargando && listaFiltrada.length > 0 && (
+          <Paginacion
+            pagina={paginaActual}
+            totalPaginas={totalPaginas}
+            total={listaFiltrada.length}
+            totalGeneral={productos.length}
+            porPagina={POR_PAGINA}
+            inicio={inicio}
+            filtrado={!!busqueda}
+            sustantivo="producto"
+            compact
+            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+          />
         )}
 
         {error && (
