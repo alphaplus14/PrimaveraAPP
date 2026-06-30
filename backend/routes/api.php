@@ -16,11 +16,13 @@ use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\TwoFactorController;
 use App\Http\Controllers\Api\PriceReviewController;
 
-// Autenticación pública
-Route::post('/login', [AuthController::class, 'login']);
+// Autenticación pública (con límite de intentos para frenar fuerza bruta)
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login');
 
 // 2FA challenge (público, pero protegido por two_factor_token temporal en cache)
-Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge']);
+Route::post('/two-factor-challenge', [TwoFactorController::class, 'challenge'])
+    ->middleware('throttle:6,1');
 
 // Rutas protegidas con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
