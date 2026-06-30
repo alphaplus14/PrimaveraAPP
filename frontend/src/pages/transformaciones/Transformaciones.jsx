@@ -6,7 +6,7 @@ import Paginacion from '../../components/ui/Paginacion'
 import FormTransformacion from './FormTransformacion'
 import { formatFechaCorta } from '../../lib/dashboard'
 
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 
 const hoy = () => new Date().toISOString().split('T')[0]
 const inicioMes = () => {
@@ -229,58 +229,78 @@ export default function Transformaciones() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Fruta</th>
-                  <th className="text-right px-4 py-3">kg entrada</th>
-                  <th className="text-left px-4 py-3">Pulpa</th>
-                  <th className="text-right px-4 py-3">Paquetes</th>
-                  <th className="text-right px-4 py-3">kg/paq</th>
-                  <th className="text-left px-4 py-3">Notas</th>
+                  <th className="text-left px-3 py-2">Fecha</th>
+                  <th className="text-left px-3 py-2">Fruta</th>
+                  <th className="text-right px-3 py-2">kg entrada</th>
+                  <th className="text-left px-3 py-2">Pulpa</th>
+                  <th className="text-right px-3 py-2">Paquetes</th>
+                  <th className="text-right px-3 py-2">kg/paq</th>
+                  <th className="text-left px-3 py-2">Notas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(t.date)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-800">
                       {t.source_product?.name}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                       {Number(t.fruit_quantity_kg).toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 text-gray-800">{t.pulp_product?.name}</td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium text-[#f56523]">
+                    <td className="px-3 py-2 text-gray-800">{t.pulp_product?.name}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-medium text-[#f56523]">
                       {t.pulp_quantity_packages}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                       {kgPorPaquete(Number(t.fruit_quantity_kg), t.pulp_quantity_packages)}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">
+                    <td className="px-3 py-2 text-gray-400 max-w-[10rem] truncate">
                       {t.notes ?? '—'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={meta.currentPage}
+                totalPaginas={meta.lastPage}
+                total={meta.total}
+                totalGeneral={meta.total}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={hayFiltros}
+                sustantivo="transformación"
+                compact
+                embedded
+                onAnterior={() => cargar(meta.currentPage - 1)}
+                onSiguiente={() => cargar(meta.currentPage + 1)}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={meta.currentPage}
-            totalPaginas={meta.lastPage}
-            total={meta.total}
-            totalGeneral={meta.total}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={hayFiltros}
-            sustantivo="transformación"
-            onAnterior={() => cargar(meta.currentPage - 1)}
-            onSiguiente={() => cargar(meta.currentPage + 1)}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={meta.currentPage}
+              totalPaginas={meta.lastPage}
+              total={meta.total}
+              totalGeneral={meta.total}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={hayFiltros}
+              sustantivo="transformación"
+              compact
+              onAnterior={() => cargar(meta.currentPage - 1)}
+              onSiguiente={() => cargar(meta.currentPage + 1)}
+            />
+          </div>
         </>
       )}
 

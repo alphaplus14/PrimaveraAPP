@@ -8,7 +8,7 @@ import FormCompra from './FormCompra'
 import { PURCHASE_TYPE_LABEL } from '../../constants/enums'
 import { formatCOP, formatFechaCorta } from '../../lib/dashboard'
 
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 const FILTROS_CONCEPTO = [
   { id: '', label: 'Todas' },
   { id: 'resale', label: 'Para venta' },
@@ -201,42 +201,42 @@ export default function Compras() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Concepto</th>
-                  <th className="text-left px-4 py-3">Ítem</th>
-                  <th className="text-left px-4 py-3">Proveedor</th>
-                  <th className="text-right px-4 py-3">kg</th>
-                  <th className="text-right px-4 py-3">$/kg</th>
-                  <th className="text-right px-4 py-3">Total</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-3 py-2">Fecha</th>
+                  <th className="text-left px-3 py-2">Concepto</th>
+                  <th className="text-left px-3 py-2">Ítem</th>
+                  <th className="text-left px-3 py-2">Proveedor</th>
+                  <th className="text-right px-3 py-2">kg</th>
+                  <th className="text-right px-3 py-2">$/kg</th>
+                  <th className="text-right px-3 py-2">Total</th>
+                  <th className="px-2 py-2 w-20" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(c.date)}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800">
+                    <td className="px-3 py-2">
+                      <span className="px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800">
                         {PURCHASE_TYPE_LABEL[c.purchase_type] ?? c.purchase_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{nombreItem(c)}</td>
-                    <td className="px-4 py-3 text-gray-600">{c.supplier?.name}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-3 py-2 font-medium text-gray-800">{nombreItem(c)}</td>
+                    <td className="px-3 py-2 text-gray-600">{c.supplier?.name}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                       {Number(c.quantity_kg).toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">
                       {formatCOP(c.unit_price)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-[#1a365d] tabular-nums">
+                    <td className="px-3 py-2 text-right font-semibold text-[#1a365d] tabular-nums">
                       {formatCOP(c.total)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-2 text-right">
                       <AccionesRegistro
                         etiqueta={nombreItem(c)}
                         onEditar={() => handleEditar(c)}
@@ -247,20 +247,40 @@ export default function Compras() {
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={meta.currentPage}
+                totalPaginas={meta.lastPage}
+                total={meta.total}
+                totalGeneral={meta.total}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={!!busqueda || !!filtroConcepto}
+                sustantivo="compra"
+                compact
+                embedded
+                onAnterior={() => cargar(meta.currentPage - 1)}
+                onSiguiente={() => cargar(meta.currentPage + 1)}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={meta.currentPage}
-            totalPaginas={meta.lastPage}
-            total={meta.total}
-            totalGeneral={meta.total}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={!!busqueda || !!filtroConcepto}
-            sustantivo="compra"
-            onAnterior={() => cargar(meta.currentPage - 1)}
-            onSiguiente={() => cargar(meta.currentPage + 1)}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={meta.currentPage}
+              totalPaginas={meta.lastPage}
+              total={meta.total}
+              totalGeneral={meta.total}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={!!busqueda || !!filtroConcepto}
+              sustantivo="compra"
+              compact
+              onAnterior={() => cargar(meta.currentPage - 1)}
+              onSiguiente={() => cargar(meta.currentPage + 1)}
+            />
+          </div>
         </>
       )}
 

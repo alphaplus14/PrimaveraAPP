@@ -10,7 +10,7 @@ import { formatCOP, formatKg, formatStock } from '../../lib/dashboard'
 
 const ICONO_EDITAR = '/assets/icons/editar%20icono.png'
 const FILTROS = ['todos', 'own', 'purchased', 'pulp', 'con_compras']
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 
 const etiquetaFiltro = (f) => {
   if (f === 'todos') return 'Todos'
@@ -157,92 +157,112 @@ export default function Productos() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Nombre</th>
-                  <th className="text-left px-4 py-3">Categoría</th>
+                  <th className="text-left px-3 py-2">Nombre</th>
+                  <th className="text-left px-3 py-2">Categoría</th>
                   {esConCompras ? (
                     <>
-                      <th className="text-right px-4 py-3">Kg comprados</th>
-                      <th className="text-right px-4 py-3">Total compras</th>
-                      <th className="text-center px-4 py-3">Nº compras</th>
+                      <th className="text-right px-3 py-2">Kg comprados</th>
+                      <th className="text-right px-3 py-2">Total compras</th>
+                      <th className="text-center px-3 py-2">Nº compras</th>
                     </>
                   ) : (
                     <>
-                      <th className="text-center px-4 py-3">Para pulpa</th>
-                      <th className="text-right px-4 py-3">Stock</th>
+                      <th className="text-center px-3 py-2">Para pulpa</th>
+                      <th className="text-right px-3 py-2">Stock</th>
                     </>
                   )}
-                  <th className="text-center px-4 py-3">Estado</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-center px-3 py-2">Estado</th>
+                  <th className="px-2 py-2 w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginaItems.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 font-medium text-gray-800">{p.name}</td>
+                    <td className="px-3 py-2">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORY_BADGE[p.category]}`}
+                        className={`px-1.5 py-0.5 rounded-full text-[11px] font-medium ${CATEGORY_BADGE[p.category]}`}
                       >
                         {CATEGORY_LABEL[p.category]}
                       </span>
                     </td>
                     {esConCompras ? (
                       <>
-                        <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                        <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                           {formatKg(p.purchase_summary?.purchased_kg)}
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums font-medium text-[#1a365d]">
+                        <td className="px-3 py-2 text-right tabular-nums font-medium text-[#1a365d]">
                           {formatCOP(p.purchase_summary?.purchased_total)}
                         </td>
-                        <td className="px-4 py-3 text-center tabular-nums text-gray-600">
+                        <td className="px-3 py-2 text-center tabular-nums text-gray-600">
                           {p.purchase_summary?.purchase_count ?? 0}
                         </td>
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-3 text-center text-gray-400">
+                        <td className="px-3 py-2 text-center text-gray-400">
                           {p.is_pulp_fruit ? '✓' : '—'}
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                        <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                           {p.inventory
                             ? formatStock(p, p.inventory.quantity_kg)
                             : '—'}
                         </td>
                       </>
                     )}
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        className={`px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
                           p.active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
                         }`}
                       >
                         {p.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <BotonEditar producto={p} onClick={() => handleEditar(p)} />
+                    <td className="px-2 py-2 text-right">
+                      <BotonEditar producto={p} onClick={() => handleEditar(p)} className="w-8 h-8" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={paginaActual}
+                totalPaginas={totalPaginas}
+                total={lista.length}
+                totalGeneral={todos.length}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={filtro !== 'todos' || !!busqueda}
+                sustantivo="producto"
+                compact
+                embedded
+                onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+                onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={paginaActual}
-            totalPaginas={totalPaginas}
-            total={lista.length}
-            totalGeneral={todos.length}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={filtro !== 'todos' || !!busqueda}
-            sustantivo="producto"
-            onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
-            onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={paginaActual}
+              totalPaginas={totalPaginas}
+              total={lista.length}
+              totalGeneral={todos.length}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={filtro !== 'todos' || !!busqueda}
+              sustantivo="producto"
+              compact
+              onAnterior={() => setPagina((p) => Math.max(1, p - 1))}
+              onSiguiente={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            />
+          </div>
         </>
       )}
 

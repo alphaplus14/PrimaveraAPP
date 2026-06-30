@@ -8,7 +8,7 @@ import FormLabor from './FormLabor'
 import { iconoLabor, esLaborCosecha } from '../../lib/taskTypes'
 import { formatFechaCorta, formatCOP } from '../../lib/dashboard'
 
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 
 const responsable = (l) => l.responsible ?? l.assigned_to ?? null
 
@@ -169,40 +169,40 @@ export default function Labores() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Labor</th>
-                  <th className="text-left px-4 py-3">Cultivo</th>
-                  <th className="text-left px-4 py-3">Responsable</th>
-                  <th className="text-left px-4 py-3">Insumos</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-3 py-2">Fecha</th>
+                  <th className="text-left px-3 py-2">Labor</th>
+                  <th className="text-left px-3 py-2">Cultivo</th>
+                  <th className="text-left px-3 py-2">Responsable</th>
+                  <th className="text-left px-3 py-2">Insumos / Cosecha</th>
+                  <th className="px-2 py-2 w-20" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(l.date)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-800">
                       <span className="mr-1">{iconoLabor(l.task_type)}</span>
                       {l.task_type}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{l.crop ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{responsable(l) ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs max-w-xs">
+                    <td className="px-3 py-2 text-gray-600">{l.crop ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-600">{responsable(l) ?? '—'}</td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[12rem]">
                       {resumenCosecha(l) && (
-                        <span className="block text-amber-700 font-medium mb-0.5">{resumenCosecha(l)}</span>
+                        <span className="block text-amber-700 font-medium mb-0.5 truncate">{resumenCosecha(l)}</span>
                       )}
                       {l.supplies?.length > 0 ? (
-                        <span className="line-clamp-2">{resumenInsumos(l.supplies)}</span>
+                        <span className="line-clamp-1">{resumenInsumos(l.supplies)}</span>
                       ) : (
                         !resumenCosecha(l) && <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-2 text-right">
                       <AccionesRegistro
                         etiqueta={l.task_type}
                         onEditar={() => handleEditar(l)}
@@ -213,20 +213,40 @@ export default function Labores() {
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={meta.currentPage}
+                totalPaginas={meta.lastPage}
+                total={meta.total}
+                totalGeneral={meta.total}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={!!busqueda}
+                sustantivo="labor"
+                compact
+                embedded
+                onAnterior={() => cargar(meta.currentPage - 1)}
+                onSiguiente={() => cargar(meta.currentPage + 1)}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={meta.currentPage}
-            totalPaginas={meta.lastPage}
-            total={meta.total}
-            totalGeneral={meta.total}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={!!busqueda}
-            sustantivo="labor"
-            onAnterior={() => cargar(meta.currentPage - 1)}
-            onSiguiente={() => cargar(meta.currentPage + 1)}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={meta.currentPage}
+              totalPaginas={meta.lastPage}
+              total={meta.total}
+              totalGeneral={meta.total}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={!!busqueda}
+              sustantivo="labor"
+              compact
+              onAnterior={() => cargar(meta.currentPage - 1)}
+              onSiguiente={() => cargar(meta.currentPage + 1)}
+            />
+          </div>
         </>
       )}
 
