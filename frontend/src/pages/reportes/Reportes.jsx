@@ -161,7 +161,8 @@ export default function Reportes() {
   const pagMovimientos = paginarLista(datosMovimientos, paginaDe('movimientos'))
 
   return (
-    <div className="p-3 md:p-4 pb-24 md:pb-4">
+    <div className="flex flex-col flex-1 min-h-0 p-3 md:p-4 pb-24 md:pb-4">
+      <div className="shrink-0">
       <h2 className="text-lg font-bold text-[#1a365d] mb-2">Reportes</h2>
 
       {/* Tabs */}
@@ -245,8 +246,10 @@ export default function Reportes() {
           />
         )}
       </div>
+      </div>
 
       {/* Contenido */}
+      <div className="flex-1 min-h-0 flex flex-col">
       {cargandoVista ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
@@ -257,8 +260,8 @@ export default function Reportes() {
         <>
           {/* ── TAB VENTAS ── */}
           {tab === 'ventas' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col flex-1 min-h-0 gap-2">
+              <div className="grid grid-cols-3 gap-2 shrink-0">
                 <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                   <p className="text-lg font-bold text-[#1a365d] leading-tight">{datosVentas.length}</p>
                   <p className="text-[10px] text-gray-400">Ventas</p>
@@ -279,76 +282,77 @@ export default function Reportes() {
                 <div
                   className={
                     ventasPorProductoLista.length > 0
-                      ? 'grid md:grid-cols-2 gap-2 items-start'
-                      : ''
+                      ? 'grid sm:grid-cols-2 gap-2 items-stretch flex-1 min-h-0'
+                      : 'flex-1 min-h-0'
                   }
                 >
                   {ventasPorProductoLista.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col min-h-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por producto ({ventasPorProductoLista.length})
                       </p>
-                      <div className="overflow-x-auto min-h-0">
-                        <table className="w-full text-xs">
-                          <thead className="bg-gray-50 text-gray-400 uppercase">
-                            <tr>
-                              <th className="text-left px-2.5 py-1">Producto</th>
-                              <th className="text-right px-2.5 py-1">kg</th>
-                              <th className="text-right px-2.5 py-1">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {pagVentasProducto.items.map((row) => (
-                              <tr key={row.nombre} className="hover:bg-gray-50">
-                                <td className="px-2.5 py-1 font-medium text-gray-800 max-w-[8rem] truncate" title={row.nombre}>
-                                  {row.nombre}
-                                </td>
-                                <td className="px-2.5 py-1 text-right tabular-nums text-gray-500 whitespace-nowrap">
-                                  {Number(row.quantity_kg).toFixed(1)}
-                                </td>
-                                <td className="px-2.5 py-1 text-right tabular-nums font-semibold text-green-700 whitespace-nowrap">
-                                  {formatCOP(row.total_pesos)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                        {pagVentasProducto.items.map((row) => (
+                          <div
+                            key={row.nombre}
+                            className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0"
+                          >
+                            <p
+                              className="text-xs font-medium text-gray-800 truncate min-w-0"
+                              title={row.nombre}
+                            >
+                              {row.nombre}
+                            </p>
+                            <div className="text-right shrink-0">
+                              <p className="text-[10px] text-gray-500 tabular-nums leading-tight">
+                                {Number(row.quantity_kg).toFixed(1)} kg
+                              </p>
+                              <p className="text-xs font-semibold text-green-700 tabular-nums leading-tight">
+                                {formatCOP(row.total_pesos)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <PiePaginacion
-                        clave="ventas-producto"
-                        pag={pagVentasProducto}
-                        sustantivo="producto"
-                        irPagina={irPagina}
-                      />
+                      <div className="mt-auto shrink-0">
+                        <PiePaginacion
+                          clave="ventas-producto"
+                          pag={pagVentasProducto}
+                          sustantivo="producto"
+                          irPagina={irPagina}
+                        />
+                      </div>
                     </div>
                   )}
 
-                  <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col min-h-0">
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
                     <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                       Detalle ({datosVentas.length})
                     </p>
-                    <div className="divide-y divide-gray-50 min-h-0">
+                    <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                       {pagVentasDetalle.items.map((v) => (
-                        <div key={v.id} className="px-2.5 py-1 flex items-center justify-between gap-2">
+                        <div key={v.id} className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0">
                           <div className="min-w-0">
-                            <p className="text-xs font-medium text-gray-800 truncate">{v.product?.name}</p>
-                            <p className="text-[11px] text-gray-400 truncate">
+                            <p className="text-xs font-medium text-gray-800 truncate leading-tight">{v.product?.name}</p>
+                            <p className="text-[10px] text-gray-400 truncate leading-tight">
                               {v.customer?.name} · {Number(v.quantity_kg).toFixed(1)} kg · {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
                             </p>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-xs font-semibold text-green-700">{formatCOP(v.total)}</p>
-                            <p className="text-[11px] text-gray-400">{v.date}</p>
+                            <p className="text-xs font-semibold text-green-700 leading-tight">{formatCOP(v.total)}</p>
+                            <p className="text-[10px] text-gray-400 leading-tight">{v.date}</p>
                           </div>
                         </div>
                       ))}
                     </div>
-                    <PiePaginacion
-                      clave="ventas-detalle"
-                      pag={pagVentasDetalle}
-                      sustantivo="venta"
-                      irPagina={irPagina}
-                    />
+                    <div className="mt-auto shrink-0">
+                      <PiePaginacion
+                        clave="ventas-detalle"
+                        pag={pagVentasDetalle}
+                        sustantivo="venta"
+                        irPagina={irPagina}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -359,8 +363,8 @@ export default function Reportes() {
 
           {/* ── TAB COMPRAS ── */}
           {tab === 'compras' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col flex-1 min-h-0 gap-2">
+              <div className="grid grid-cols-3 gap-2 shrink-0">
                 <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                   <p className="text-lg font-bold text-[#1a365d] leading-tight">{datosCompras.length}</p>
                   <p className="text-[10px] text-gray-400">Compras</p>
@@ -378,32 +382,34 @@ export default function Reportes() {
               </div>
 
               {datosCompras.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     Detalle ({datosCompras.length})
                   </p>
-                  <div className="divide-y divide-gray-50">
+                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                     {pagComprasDetalle.items.map((c) => (
-                      <div key={c.id} className="px-2.5 py-1 flex items-center justify-between gap-3">
+                      <div key={c.id} className="flex-1 flex items-center justify-between gap-3 px-2.5 min-h-0">
                         <div className="min-w-0">
                           <p className="text-xs font-medium text-gray-800 truncate">{c.product?.name}</p>
-                          <p className="text-[11px] text-gray-400 truncate">
+                          <p className="text-[10px] text-gray-400 truncate">
                             {c.supplier?.name} · {Number(c.quantity_kg).toFixed(1)} kg
                           </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs font-semibold text-blue-700">{formatCOP(c.total)}</p>
-                          <p className="text-[11px] text-gray-400">{c.date}</p>
+                          <p className="text-[10px] text-gray-400">{c.date}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <PiePaginacion
-                    clave="compras-detalle"
-                    pag={pagComprasDetalle}
-                    sustantivo="compra"
-                    irPagina={irPagina}
-                  />
+                  <div className="mt-auto shrink-0">
+                    <PiePaginacion
+                      clave="compras-detalle"
+                      pag={pagComprasDetalle}
+                      sustantivo="compra"
+                      irPagina={irPagina}
+                    />
+                  </div>
                 </div>
               ) : (
                 <EmptyState mensaje="Sin compras en este período" />
@@ -413,13 +419,13 @@ export default function Reportes() {
 
           {/* ── TAB RENTABILIDAD ── */}
           {tab === 'rentabilidad' && (
-            <div className="space-y-2">
-              <p className="text-[10px] text-gray-500 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug">
+            <div className="flex flex-col flex-1 min-h-0 gap-2">
+              <p className="text-[10px] text-gray-500 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug shrink-0">
                 Margen estimado: ventas menos compras de reventa por producto. Sin lotes ni FIFO.
               </p>
 
               {metaRentabilidad && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 shrink-0">
                   <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                     <p className="text-sm font-bold text-green-600 leading-tight">
                       {formatCOP(metaRentabilidad.sales_total)}
@@ -446,58 +452,36 @@ export default function Reportes() {
               )}
 
               {datosRentabilidad.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     Por producto ({datosRentabilidad.length})
                   </p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs min-w-[32rem]">
-                      <thead className="bg-gray-50 text-gray-400 uppercase">
-                        <tr>
-                          <th className="text-left px-2.5 py-1">Producto</th>
-                          <th className="text-right px-2.5 py-1">Kg vend.</th>
-                          <th className="text-right px-2.5 py-1">Ventas</th>
-                          <th className="text-right px-2.5 py-1">Kg compr.</th>
-                          <th className="text-right px-2.5 py-1">Compras</th>
-                          <th className="text-right px-2.5 py-1">Margen</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {pagRentabilidad.items.map((r) => (
-                          <tr key={r.product_id} className="hover:bg-gray-50">
-                            <td className="px-2.5 py-1 font-medium text-gray-800">
-                              {r.product?.name ?? '—'}
-                            </td>
-                            <td className="px-2.5 py-1 text-right tabular-nums text-gray-500">
-                              {Number(r.sales_kg).toFixed(1)}
-                            </td>
-                            <td className="px-2.5 py-1 text-right tabular-nums text-green-700">
-                              {formatCOP(r.sales_total)}
-                            </td>
-                            <td className="px-2.5 py-1 text-right tabular-nums text-gray-500">
-                              {Number(r.purchase_kg).toFixed(1)}
-                            </td>
-                            <td className="px-2.5 py-1 text-right tabular-nums text-blue-700">
-                              {formatCOP(r.purchase_total)}
-                            </td>
-                            <td
-                              className={`px-2.5 py-1 text-right tabular-nums font-semibold ${
-                                r.margin >= 0 ? 'text-[#1a365d]' : 'text-red-600'
-                              }`}
-                            >
-                              {formatCOP(r.margin)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                    {pagRentabilidad.items.map((r) => (
+                      <div key={r.product_id} className="flex-1 flex flex-col justify-center px-2.5 min-h-0 gap-0.5">
+                        <p className="text-xs font-medium text-gray-800 truncate">
+                          {r.product?.name ?? '—'}
+                        </p>
+                        <div className="flex items-center justify-between gap-1 text-[10px] tabular-nums">
+                          <span className="text-gray-500">{Number(r.sales_kg).toFixed(1)} kg</span>
+                          <span className="text-green-700">{formatCOP(r.sales_total)}</span>
+                          <span className="text-gray-500">{Number(r.purchase_kg).toFixed(1)} kg</span>
+                          <span className="text-blue-700">{formatCOP(r.purchase_total)}</span>
+                          <span className={`font-semibold ${r.margin >= 0 ? 'text-[#1a365d]' : 'text-red-600'}`}>
+                            {formatCOP(r.margin)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <PiePaginacion
-                    clave="rentabilidad"
-                    pag={pagRentabilidad}
-                    sustantivo="producto"
-                    irPagina={irPagina}
-                  />
+                  <div className="mt-auto shrink-0">
+                    <PiePaginacion
+                      clave="rentabilidad"
+                      pag={pagRentabilidad}
+                      sustantivo="producto"
+                      irPagina={irPagina}
+                    />
+                  </div>
                 </div>
               ) : (
                 <EmptyState mensaje="Sin movimientos de venta o compra en este período" />
@@ -507,9 +491,9 @@ export default function Reportes() {
 
           {/* ── TAB COSECHAS / LABORES ── */}
           {tab === 'labores' && (
-            <div className="space-y-2">
+            <div className="flex flex-col flex-1 min-h-0 gap-2">
               {metaLabores && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
                   <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                     <p className="text-lg font-bold text-[#1a365d] leading-tight">{metaLabores.harvest_count}</p>
                     <p className="text-[10px] text-gray-400">Cosechas</p>
@@ -534,15 +518,15 @@ export default function Reportes() {
               {(datosLabores?.by_crop?.length > 0 ||
                 datosLabores?.by_date?.length > 0 ||
                 datosLabores?.tasks?.length > 0) ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-stretch flex-1 min-h-0">
                   {datosLabores?.by_crop?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por cultivo ({datosLabores.by_crop.length})
                       </p>
-                      <div className="divide-y divide-gray-50 min-h-0">
+                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                         {pagLaboresCultivo.items.map((row) => (
-                          <div key={row.crop} className="px-2.5 py-1 flex items-center justify-between gap-1.5">
+                          <div key={row.crop} className="flex-1 flex items-center justify-between gap-1.5 px-2.5 min-h-0">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800 truncate" title={row.crop}>
                                 {row.crop}
@@ -556,23 +540,25 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <PiePaginacion
-                        clave="labores-cultivo"
-                        pag={pagLaboresCultivo}
-                        sustantivo="cultivo"
-                        irPagina={irPagina}
-                      />
+                      <div className="mt-auto shrink-0">
+                        <PiePaginacion
+                          clave="labores-cultivo"
+                          pag={pagLaboresCultivo}
+                          sustantivo="cultivo"
+                          irPagina={irPagina}
+                        />
+                      </div>
                     </div>
                   )}
 
                   {datosLabores?.by_date?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por fecha ({datosLabores.by_date.length})
                       </p>
-                      <div className="divide-y divide-gray-50 min-h-0">
+                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                         {pagLaboresFecha.items.map((row) => (
-                          <div key={row.date} className="px-2.5 py-1 flex items-center justify-between gap-1.5">
+                          <div key={row.date} className="flex-1 flex items-center justify-between gap-1.5 px-2.5 min-h-0">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800">{formatFechaCorta(row.date)}</p>
                               <p className="text-[10px] text-gray-400">
@@ -586,23 +572,25 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <PiePaginacion
-                        clave="labores-fecha"
-                        pag={pagLaboresFecha}
-                        sustantivo="fecha"
-                        irPagina={irPagina}
-                      />
+                      <div className="mt-auto shrink-0">
+                        <PiePaginacion
+                          clave="labores-fecha"
+                          pag={pagLaboresFecha}
+                          sustantivo="fecha"
+                          irPagina={irPagina}
+                        />
+                      </div>
                     </div>
                   )}
 
                   {datosLabores?.tasks?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Detalle ({datosLabores.tasks.length})
                       </p>
-                      <div className="divide-y divide-gray-50 min-h-0">
+                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                         {pagLaboresDetalle.items.map((t) => (
-                          <div key={t.id} className="px-2.5 py-1">
+                          <div key={t.id} className="flex-1 flex flex-col justify-center px-2.5 min-h-0">
                             <div className="flex justify-between items-start gap-1.5">
                               <div className="min-w-0">
                                 <p className="text-xs font-medium text-gray-800 truncate">
@@ -628,12 +616,14 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <PiePaginacion
-                        clave="labores-detalle"
-                        pag={pagLaboresDetalle}
-                        sustantivo="cosecha"
-                        irPagina={irPagina}
-                      />
+                      <div className="mt-auto shrink-0">
+                        <PiePaginacion
+                          clave="labores-detalle"
+                          pag={pagLaboresDetalle}
+                          sustantivo="cosecha"
+                          irPagina={irPagina}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -647,18 +637,18 @@ export default function Reportes() {
 
           {/* ── TAB MOVIMIENTOS ── */}
           {tab === 'movimientos' && (
-            <div className="space-y-2">
+            <div className="flex flex-col flex-1 min-h-0">
               {datosMovimientos.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     {datosMovimientos.length} movimiento{datosMovimientos.length !== 1 ? 's' : ''}
                   </p>
-                  <div className="divide-y divide-gray-50">
+                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
                     {pagMovimientos.items.map((m) => {
                       const tipo = MOVEMENT_TYPE_LABEL[m.type] ?? { label: m.type, color: 'text-gray-600', bg: 'bg-gray-50' }
                       const positivo = Number(m.quantity_kg) >= 0
                       return (
-                        <div key={m.id} className="px-2.5 py-1 flex items-center justify-between gap-2">
+                        <div key={m.id} className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className={`px-1 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${tipo.bg} ${tipo.color}`}>
                               {tipo.label}
@@ -675,12 +665,14 @@ export default function Reportes() {
                       )
                     })}
                   </div>
-                  <PiePaginacion
-                    clave="movimientos"
-                    pag={pagMovimientos}
-                    sustantivo="movimiento"
-                    irPagina={irPagina}
-                  />
+                  <div className="mt-auto shrink-0">
+                    <PiePaginacion
+                      clave="movimientos"
+                      pag={pagMovimientos}
+                      sustantivo="movimiento"
+                      irPagina={irPagina}
+                    />
+                  </div>
                 </div>
               ) : (
                 <EmptyState mensaje="Sin movimientos en este período" />
@@ -689,6 +681,7 @@ export default function Reportes() {
           )}
         </>
       )}
+      </div>
     </div>
   )
 }
