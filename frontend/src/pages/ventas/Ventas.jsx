@@ -8,7 +8,7 @@ import FormVenta from './FormVenta'
 import { SALE_TYPE_LABEL } from '../../constants/enums'
 import { formatCOP, formatFechaCorta } from '../../lib/dashboard'
 
-const POR_PAGINA = 15
+const POR_PAGINA = 10
 
 export default function Ventas() {
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -173,30 +173,30 @@ export default function Ventas() {
           </div>
 
           <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase">
                 <tr>
-                  <th className="text-left px-4 py-3">Fecha</th>
-                  <th className="text-left px-4 py-3">Producto</th>
-                  <th className="text-left px-4 py-3">Cliente</th>
-                  <th className="text-left px-4 py-3">Tipo</th>
-                  <th className="text-right px-4 py-3">kg</th>
-                  <th className="text-right px-4 py-3">$/kg</th>
-                  <th className="text-right px-4 py-3">Total</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-3 py-2">Fecha</th>
+                  <th className="text-left px-3 py-2">Producto</th>
+                  <th className="text-left px-3 py-2">Cliente</th>
+                  <th className="text-left px-3 py-2">Tipo</th>
+                  <th className="text-right px-3 py-2">kg</th>
+                  <th className="text-right px-3 py-2">$/kg</th>
+                  <th className="text-right px-3 py-2">Total</th>
+                  <th className="px-2 py-2 w-20" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lista.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                       {formatFechaCorta(v.date)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{v.product?.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{v.customer?.name}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 font-medium text-gray-800">{v.product?.name}</td>
+                    <td className="px-3 py-2 text-gray-600">{v.customer?.name}</td>
+                    <td className="px-3 py-2">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        className={`px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
                           v.sale_type === 'wholesale'
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-gray-100 text-gray-600'
@@ -205,16 +205,16 @@ export default function Ventas() {
                         {SALE_TYPE_LABEL[v.sale_type] ?? v.sale_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                       {Number(v.quantity_kg).toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">
                       {formatCOP(v.unit_price)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-green-700 tabular-nums">
+                    <td className="px-3 py-2 text-right font-semibold text-green-700 tabular-nums">
                       {formatCOP(v.total)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 py-2 text-right">
                       <AccionesRegistro
                         etiqueta={v.product?.name}
                         onEditar={() => handleEditar(v)}
@@ -225,20 +225,40 @@ export default function Ventas() {
                 ))}
               </tbody>
             </table>
+
+            <div className="border-t border-gray-100 px-3 py-1.5 bg-gray-50/50">
+              <Paginacion
+                pagina={meta.currentPage}
+                totalPaginas={meta.lastPage}
+                total={meta.total}
+                totalGeneral={meta.total}
+                porPagina={POR_PAGINA}
+                inicio={inicio}
+                filtrado={!!busqueda}
+                sustantivo="venta"
+                compact
+                embedded
+                onAnterior={() => cargar(meta.currentPage - 1)}
+                onSiguiente={() => cargar(meta.currentPage + 1)}
+              />
+            </div>
           </div>
 
-          <Paginacion
-            pagina={meta.currentPage}
-            totalPaginas={meta.lastPage}
-            total={meta.total}
-            totalGeneral={meta.total}
-            porPagina={POR_PAGINA}
-            inicio={inicio}
-            filtrado={!!busqueda}
-            sustantivo="venta"
-            onAnterior={() => cargar(meta.currentPage - 1)}
-            onSiguiente={() => cargar(meta.currentPage + 1)}
-          />
+          <div className="md:hidden">
+            <Paginacion
+              pagina={meta.currentPage}
+              totalPaginas={meta.lastPage}
+              total={meta.total}
+              totalGeneral={meta.total}
+              porPagina={POR_PAGINA}
+              inicio={inicio}
+              filtrado={!!busqueda}
+              sustantivo="venta"
+              compact
+              onAnterior={() => cargar(meta.currentPage - 1)}
+              onSiguiente={() => cargar(meta.currentPage + 1)}
+            />
+          </div>
         </>
       )}
 

@@ -217,3 +217,4 @@ La guía completa para desplegar en un VPS (Hostinger) — Nginx, HTTPS con Cert
 - La sesión guardada se valida contra el backend al arrancar la app; si el token venció, se cierra sesión automáticamente.
 - Todos los mensajes de error están en español.
 - Unidad de medida universal: **kilogramos (kg)**.
+.
