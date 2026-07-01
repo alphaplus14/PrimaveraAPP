@@ -13,8 +13,8 @@ import Paginacion from '../../components/ui/Paginacion'
 import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
 import { formatFechaCorta } from '../../lib/dashboard'
 
-const POR_PAGINA = 5
-const POR_PAGINA_COSECHAS = 5
+const POR_PAGINA = 12
+const POR_PAGINA_COSECHAS = 8
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
@@ -161,7 +161,7 @@ export default function Reportes() {
   const pagMovimientos = paginarLista(datosMovimientos, paginaDe('movimientos'))
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 p-3 md:p-4 pb-24 md:pb-4">
+    <div className="p-3 md:p-4 pb-24 md:pb-4">
       <div className="shrink-0">
       <h2 className="text-lg font-bold text-[#1a365d] mb-2">Reportes</h2>
 
@@ -249,7 +249,6 @@ export default function Reportes() {
       </div>
 
       {/* Contenido */}
-      <div className="flex-1 min-h-0 flex flex-col">
       {cargandoVista ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
@@ -260,7 +259,7 @@ export default function Reportes() {
         <>
           {/* ── TAB VENTAS ── */}
           {tab === 'ventas' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-2">
+            <div className="space-y-2">
               <div className="grid grid-cols-3 gap-2 shrink-0">
                 <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                   <p className="text-lg font-bold text-[#1a365d] leading-tight">{datosVentas.length}</p>
@@ -282,20 +281,20 @@ export default function Reportes() {
                 <div
                   className={
                     ventasPorProductoLista.length > 0
-                      ? 'grid sm:grid-cols-2 gap-2 items-stretch flex-1 min-h-0'
-                      : 'flex-1 min-h-0'
+                      ? 'grid sm:grid-cols-2 gap-2 items-start'
+                      : ''
                   }
                 >
                   {ventasPorProductoLista.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por producto ({ventasPorProductoLista.length})
                       </p>
-                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                      <div className="divide-y divide-gray-50">
                         {pagVentasProducto.items.map((row) => (
                           <div
                             key={row.nombre}
-                            className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0"
+                            className="flex items-center justify-between gap-2 px-2.5 py-0.5"
                           >
                             <p
                               className="text-xs font-medium text-gray-800 truncate min-w-0"
@@ -314,24 +313,22 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-auto shrink-0">
-                        <PiePaginacion
-                          clave="ventas-producto"
-                          pag={pagVentasProducto}
-                          sustantivo="producto"
-                          irPagina={irPagina}
-                        />
-                      </div>
+                      <PiePaginacion
+                        clave="ventas-producto"
+                        pag={pagVentasProducto}
+                        sustantivo="producto"
+                        irPagina={irPagina}
+                      />
                     </div>
                   )}
 
-                  <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                     <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                       Detalle ({datosVentas.length})
                     </p>
-                    <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                    <div className="divide-y divide-gray-50">
                       {pagVentasDetalle.items.map((v) => (
-                        <div key={v.id} className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0">
+                        <div key={v.id} className="flex items-center justify-between gap-2 px-2.5 py-0.5">
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-gray-800 truncate leading-tight">{v.product?.name}</p>
                             <p className="text-[10px] text-gray-400 truncate leading-tight">
@@ -345,14 +342,12 @@ export default function Reportes() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-auto shrink-0">
-                      <PiePaginacion
-                        clave="ventas-detalle"
-                        pag={pagVentasDetalle}
-                        sustantivo="venta"
-                        irPagina={irPagina}
-                      />
-                    </div>
+                    <PiePaginacion
+                      clave="ventas-detalle"
+                      pag={pagVentasDetalle}
+                      sustantivo="venta"
+                      irPagina={irPagina}
+                    />
                   </div>
                 </div>
               ) : (
@@ -363,7 +358,7 @@ export default function Reportes() {
 
           {/* ── TAB COMPRAS ── */}
           {tab === 'compras' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-2">
+            <div className="space-y-2">
               <div className="grid grid-cols-3 gap-2 shrink-0">
                 <div className="bg-white rounded-lg shadow-sm p-2 text-center">
                   <p className="text-lg font-bold text-[#1a365d] leading-tight">{datosCompras.length}</p>
@@ -382,13 +377,13 @@ export default function Reportes() {
               </div>
 
               {datosCompras.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     Detalle ({datosCompras.length})
                   </p>
-                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                  <div className="divide-y divide-gray-50">
                     {pagComprasDetalle.items.map((c) => (
-                      <div key={c.id} className="flex-1 flex items-center justify-between gap-3 px-2.5 min-h-0">
+                      <div key={c.id} className="flex items-center justify-between gap-2 px-2.5 py-0.5">
                         <div className="min-w-0">
                           <p className="text-xs font-medium text-gray-800 truncate">{c.product?.name}</p>
                           <p className="text-[10px] text-gray-400 truncate">
@@ -402,14 +397,12 @@ export default function Reportes() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-auto shrink-0">
-                    <PiePaginacion
-                      clave="compras-detalle"
-                      pag={pagComprasDetalle}
-                      sustantivo="compra"
-                      irPagina={irPagina}
-                    />
-                  </div>
+                  <PiePaginacion
+                    clave="compras-detalle"
+                    pag={pagComprasDetalle}
+                    sustantivo="compra"
+                    irPagina={irPagina}
+                  />
                 </div>
               ) : (
                 <EmptyState mensaje="Sin compras en este período" />
@@ -419,7 +412,7 @@ export default function Reportes() {
 
           {/* ── TAB RENTABILIDAD ── */}
           {tab === 'rentabilidad' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-2">
+            <div className="space-y-2">
               <p className="text-[10px] text-gray-500 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 leading-snug shrink-0">
                 Margen estimado: ventas menos compras de reventa por producto. Sin lotes ni FIFO.
               </p>
@@ -452,13 +445,13 @@ export default function Reportes() {
               )}
 
               {datosRentabilidad.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     Por producto ({datosRentabilidad.length})
                   </p>
-                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                  <div className="divide-y divide-gray-50">
                     {pagRentabilidad.items.map((r) => (
-                      <div key={r.product_id} className="flex-1 flex flex-col justify-center px-2.5 min-h-0 gap-0.5">
+                      <div key={r.product_id} className="px-2.5 py-0.5">
                         <p className="text-xs font-medium text-gray-800 truncate">
                           {r.product?.name ?? '—'}
                         </p>
@@ -474,14 +467,12 @@ export default function Reportes() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-auto shrink-0">
-                    <PiePaginacion
-                      clave="rentabilidad"
-                      pag={pagRentabilidad}
-                      sustantivo="producto"
-                      irPagina={irPagina}
-                    />
-                  </div>
+                  <PiePaginacion
+                    clave="rentabilidad"
+                    pag={pagRentabilidad}
+                    sustantivo="producto"
+                    irPagina={irPagina}
+                  />
                 </div>
               ) : (
                 <EmptyState mensaje="Sin movimientos de venta o compra en este período" />
@@ -491,7 +482,7 @@ export default function Reportes() {
 
           {/* ── TAB COSECHAS / LABORES ── */}
           {tab === 'labores' && (
-            <div className="flex flex-col flex-1 min-h-0 gap-2">
+            <div className="space-y-2">
               {metaLabores && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
                   <div className="bg-white rounded-lg shadow-sm p-2 text-center">
@@ -518,15 +509,15 @@ export default function Reportes() {
               {(datosLabores?.by_crop?.length > 0 ||
                 datosLabores?.by_date?.length > 0 ||
                 datosLabores?.tasks?.length > 0) ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-stretch flex-1 min-h-0">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-start">
                   {datosLabores?.by_crop?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por cultivo ({datosLabores.by_crop.length})
                       </p>
-                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                      <div className="divide-y divide-gray-50">
                         {pagLaboresCultivo.items.map((row) => (
-                          <div key={row.crop} className="flex-1 flex items-center justify-between gap-1.5 px-2.5 min-h-0">
+                          <div key={row.crop} className="flex items-center justify-between gap-1.5 px-2.5 py-0.5">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800 truncate" title={row.crop}>
                                 {row.crop}
@@ -540,25 +531,23 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-auto shrink-0">
-                        <PiePaginacion
-                          clave="labores-cultivo"
-                          pag={pagLaboresCultivo}
-                          sustantivo="cultivo"
-                          irPagina={irPagina}
-                        />
-                      </div>
+                      <PiePaginacion
+                        clave="labores-cultivo"
+                        pag={pagLaboresCultivo}
+                        sustantivo="cultivo"
+                        irPagina={irPagina}
+                      />
                     </div>
                   )}
 
                   {datosLabores?.by_date?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Por fecha ({datosLabores.by_date.length})
                       </p>
-                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                      <div className="divide-y divide-gray-50">
                         {pagLaboresFecha.items.map((row) => (
-                          <div key={row.date} className="flex-1 flex items-center justify-between gap-1.5 px-2.5 min-h-0">
+                          <div key={row.date} className="flex items-center justify-between gap-1.5 px-2.5 py-0.5">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800">{formatFechaCorta(row.date)}</p>
                               <p className="text-[10px] text-gray-400">
@@ -572,25 +561,23 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-auto shrink-0">
-                        <PiePaginacion
-                          clave="labores-fecha"
-                          pag={pagLaboresFecha}
-                          sustantivo="fecha"
-                          irPagina={irPagina}
-                        />
-                      </div>
+                      <PiePaginacion
+                        clave="labores-fecha"
+                        pag={pagLaboresFecha}
+                        sustantivo="fecha"
+                        irPagina={irPagina}
+                      />
                     </div>
                   )}
 
                   {datosLabores?.tasks?.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full min-h-0 min-w-0">
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                         Detalle ({datosLabores.tasks.length})
                       </p>
-                      <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                      <div className="divide-y divide-gray-50">
                         {pagLaboresDetalle.items.map((t) => (
-                          <div key={t.id} className="flex-1 flex flex-col justify-center px-2.5 min-h-0">
+                          <div key={t.id} className="px-2.5 py-0.5">
                             <div className="flex justify-between items-start gap-1.5">
                               <div className="min-w-0">
                                 <p className="text-xs font-medium text-gray-800 truncate">
@@ -616,14 +603,12 @@ export default function Reportes() {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-auto shrink-0">
-                        <PiePaginacion
-                          clave="labores-detalle"
-                          pag={pagLaboresDetalle}
-                          sustantivo="cosecha"
-                          irPagina={irPagina}
-                        />
-                      </div>
+                      <PiePaginacion
+                        clave="labores-detalle"
+                        pag={pagLaboresDetalle}
+                        sustantivo="cosecha"
+                        irPagina={irPagina}
+                      />
                     </div>
                   )}
                 </div>
@@ -637,18 +622,18 @@ export default function Reportes() {
 
           {/* ── TAB MOVIMIENTOS ── */}
           {tab === 'movimientos' && (
-            <div className="flex flex-col flex-1 min-h-0">
+            <div className="space-y-2">
               {datosMovimientos.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     {datosMovimientos.length} movimiento{datosMovimientos.length !== 1 ? 's' : ''}
                   </p>
-                  <div className="flex-1 min-h-0 flex flex-col divide-y divide-gray-50">
+                  <div className="divide-y divide-gray-50">
                     {pagMovimientos.items.map((m) => {
                       const tipo = MOVEMENT_TYPE_LABEL[m.type] ?? { label: m.type, color: 'text-gray-600', bg: 'bg-gray-50' }
                       const positivo = Number(m.quantity_kg) >= 0
                       return (
-                        <div key={m.id} className="flex-1 flex items-center justify-between gap-2 px-2.5 min-h-0">
+                        <div key={m.id} className="flex items-center justify-between gap-2 px-2.5 py-0.5">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className={`px-1 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${tipo.bg} ${tipo.color}`}>
                               {tipo.label}
@@ -665,14 +650,12 @@ export default function Reportes() {
                       )
                     })}
                   </div>
-                  <div className="mt-auto shrink-0">
-                    <PiePaginacion
-                      clave="movimientos"
-                      pag={pagMovimientos}
-                      sustantivo="movimiento"
-                      irPagina={irPagina}
-                    />
-                  </div>
+                  <PiePaginacion
+                    clave="movimientos"
+                    pag={pagMovimientos}
+                    sustantivo="movimiento"
+                    irPagina={irPagina}
+                  />
                 </div>
               ) : (
                 <EmptyState mensaje="Sin movimientos en este período" />
@@ -681,7 +664,6 @@ export default function Reportes() {
           )}
         </>
       )}
-      </div>
     </div>
   )
 }
