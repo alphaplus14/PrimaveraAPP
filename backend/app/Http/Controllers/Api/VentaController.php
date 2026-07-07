@@ -75,6 +75,8 @@ class VentaController extends Controller
                 'unit_price'  => $data['unit_price'],
                 'total'       => $data['quantity_kg'] * $data['unit_price'],
                 'forced'      => $data['forced'] ?? false,
+                'is_credit'   => $data['is_credit'] ?? false,
+                'amount_paid' => $this->resolveAmountPaid($data),
             ]);
 
             $this->inventario->aplicarVenta($venta->fresh());
@@ -105,6 +107,8 @@ class VentaController extends Controller
             'sale_type'   => 'required|in:retail,wholesale',
             'unit_price'  => 'required|numeric|min:0',
             'force'       => 'boolean',
+            'is_credit'   => 'boolean',
+            'amount_paid' => 'nullable|numeric|min:0',
         ]);
 
         $data['forced'] = $data['force'] ?? false;
@@ -148,11 +152,24 @@ class VentaController extends Controller
                 'unit_price'  => $data['unit_price'],
                 'total'       => $data['quantity_kg'] * $data['unit_price'],
                 'forced'      => $data['forced'] ?? false,
+                'is_credit'   => $data['is_credit'] ?? false,
+                'amount_paid' => $this->resolveAmountPaid($data),
             ]);
 
             $this->inventario->aplicarVenta($sale);
 
             return $sale;
         });
+    }
+
+    private function resolveAmountPaid(array $data): float
+    {
+        $total = (float) $data['quantity_kg'] * (float) $data['unit_price'];
+
+        if ($data['is_credit'] ?? false) {
+            return min($total, max(0, (float) ($data['amount_paid'] ?? 0)));
+        }
+
+        return $total;
     }
 }

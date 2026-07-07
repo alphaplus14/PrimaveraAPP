@@ -81,8 +81,8 @@ export default function Dashboard() {
   })
 
   return (
-    <div className="p-4 md:p-6 pb-24 md:pb-6 min-h-full bg-[#F8F9FA]">
-      <div className="mb-6">
+    <div className="flex flex-col h-full min-h-0 overflow-y-auto md:overflow-hidden p-4 md:p-6 pb-24 md:pb-6 bg-[#F8F9FA]">
+      <div className="shrink-0 mb-4 md:mb-5 sticky top-0 z-10 bg-[#F8F9FA]/95 backdrop-blur-sm py-1 md:static md:backdrop-blur-none md:py-0">
         <h2 className="text-xl font-bold text-slate-800">Hola, {user?.name} </h2>
         <p className="text-slate-400 text-sm capitalize">{hoy}</p>
       </div>
@@ -103,7 +103,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 md:mb-5 shrink-0">
             <TarjetaStat
               label="Ventas hoy"
               valor={formatCOP(datos.ventasHoy)}
@@ -130,11 +130,11 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5 md:overflow-hidden">
+            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-5 min-h-0 md:overflow-y-auto">
               <GraficoVentasSemanal datos={ventasSemanal} cargando={cargandoGrafico} />
 
-              <div>
+              <div className="shrink-0">
                 <h3 className="font-semibold text-slate-800 text-sm mb-3">Accesos rápidos</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {ACCIONES_RAPIDAS.map((accion) => (
@@ -148,12 +148,12 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 md:gap-6 min-h-0">
+            <div className="flex flex-col gap-4 md:gap-5 min-h-0 lg:overflow-hidden">
               <PanelWidget
                 titulo="Productos en bajo stock"
                 subtitulo="Menos de 5 kg o paquetes"
                 onVerTodo={() => setModalStock(true)}
-                className="max-h-72 md:max-h-80"
+                className="flex-1 min-h-[200px] lg:min-h-0"
               >
                 {datos.stockBajo.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-8 px-4">
@@ -174,7 +174,7 @@ export default function Dashboard() {
                 titulo="Ventas del día"
                 subtitulo="Últimas registradas hoy"
                 onVerTodo={() => navigate('/ventas')}
-                className="max-h-72 md:max-h-80"
+                className="flex-1 min-h-[200px] lg:min-h-0"
               >
                 {datos.ventasHoyLista.length === 0 ? (
                   <div className="text-center py-8 px-4">

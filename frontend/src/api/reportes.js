@@ -23,6 +23,7 @@ export const getReporteMovimientos = (params) => client.get('/reportes/movimient
 export const getReporteInventario  = ()        => client.get('/reportes/inventario')
 export const getReporteRentabilidad = (params) => client.get('/reportes/rentabilidad', { params })
 export const getReporteLabores      = (params) => client.get('/reportes/labores', { params })
+export const getReporteOrigen       = (params) => client.get('/reportes/origen', { params })
 
 export const getVentasUltimasSemanas = (semanas = 8) => {
   const hoy = new Date()

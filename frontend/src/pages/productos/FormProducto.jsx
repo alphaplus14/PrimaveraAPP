@@ -5,11 +5,16 @@ import {
   getPrecioActual,
   crearPrecio,
 } from '../../api/productos'
+import InputPrecioCOP from '../../components/ui/InputPrecioCOP'
+import {
+  formatCOP,
+  parsePrecioCOP,
+  formatPrecioInput,
+  esCambioSospechoso,
+  labelTipoPrecio,
+} from '../../lib/precios'
 
 const hoy = () => new Date().toISOString().split('T')[0]
-
-const formatCOP = (v) =>
-  Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 
 const TIPO_PRECIO_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
 
@@ -35,6 +40,7 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
   const [editandoPrecio, setEditandoPrecio] = useState(null)
   const [formPrecio, setFormPrecio] = useState({ value: '', valid_from: hoy() })
   const [guardandoPrecio, setGuardandoPrecio] = useState(false)
+  const [confirmarPrecio, setConfirmarPrecio] = useState(null)
 
   useEffect(() => {
     if (esEdicion && producto.id) {
@@ -66,20 +72,18 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
     }
   }
 
-  const handleGuardarPrecio = async () => {
-    if (!formPrecio.value || Number(formPrecio.value) <= 0) {
-      setError('El precio debe ser mayor a cero.')
-      return
-    }
+  const ejecutarGuardarPrecio = async () => {
+    const valor = parsePrecioCOP(formPrecio.value)
     setGuardandoPrecio(true)
     try {
       const { data } = await crearPrecio(producto.id, {
         type:       editandoPrecio,
-        value:      formPrecio.value,
+        value:      valor,
         valid_from: formPrecio.valid_from,
       })
       setPrecios((prev) => ({ ...prev, [editandoPrecio]: data.data }))
       setEditandoPrecio(null)
+      setConfirmarPrecio(null)
       setFormPrecio({ value: '', valid_from: hoy() })
     } catch (err) {
       setError(err.response?.data?.message ?? 'Error al guardar el precio.')
@@ -88,10 +92,31 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
     }
   }
 
+  const handleGuardarPrecio = () => {
+    const valor = parsePrecioCOP(formPrecio.value)
+    if (valor == null || valor <= 0) {
+      setError('El precio debe ser mayor a cero.')
+      return
+    }
+
+    const anterior = precios[editandoPrecio]?.value != null
+      ? Number(precios[editandoPrecio].value)
+      : null
+
+    if (anterior != null && Math.abs(valor - anterior) > 0.001) {
+      setConfirmarPrecio({ anterior, nuevo: valor, tipo: editandoPrecio })
+      setError(null)
+      return
+    }
+
+    ejecutarGuardarPrecio()
+  }
+
   const abrirEditarPrecio = (tipo) => {
     setEditandoPrecio(tipo)
+    setConfirmarPrecio(null)
     setFormPrecio({
-      value:      precios[tipo] ? String(Number(precios[tipo].value)) : '',
+      value: precios[tipo] ? formatPrecioInput(String(precios[tipo].value)) : '',
       valid_from: hoy(),
     })
     setError(null)
@@ -184,20 +209,62 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
               <div key={tipo}>
                 {editandoPrecio === tipo ? (
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
+                    {confirmarPrecio?.tipo === tipo ? (
+                      <>
+                        <p className="text-xs font-semibold text-[#1a365d]">
+                          Confirmar cambio de precio {labelTipoPrecio(tipo)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {confirmarPrecio.anterior != null && (
+                            <>
+                              <span className="line-through text-gray-400">
+                                {formatCOP(confirmarPrecio.anterior)}
+                              </span>
+                              {' → '}
+                            </>
+                          )}
+                          <span className="font-semibold">{formatCOP(confirmarPrecio.nuevo)}</span>
+                          {' '}/ kg
+                        </p>
+                        {esCambioSospechoso(confirmarPrecio.anterior, confirmarPrecio.nuevo) && (
+                          <p className="text-xs text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-2 py-1.5">
+                            El cambio es muy grande. ¿Seguro que no falta o sobra un cero?
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setConfirmarPrecio(null)}
+                            disabled={guardandoPrecio}
+                            className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg text-xs font-medium"
+                          >
+                            Volver
+                          </button>
+                          <button
+                            onClick={ejecutarGuardarPrecio}
+                            disabled={guardandoPrecio}
+                            className="flex-1 bg-[#1a365d] text-white py-2 rounded-lg text-xs font-medium disabled:opacity-60"
+                          >
+                            {guardandoPrecio ? 'Guardando...' : 'Confirmar'}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
                     <p className="text-xs font-semibold text-orange-700">
                       Nuevo precio {TIPO_PRECIO_LABEL[tipo]}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-gray-400 mb-0.5 block">$/kg *</label>
-                        <input
-                          type="number"
+                        <InputPrecioCOP
                           autoFocus
-                          min="1"
-                          step="100"
                           placeholder="0"
                           value={formPrecio.value}
-                          onChange={(e) => setFormPrecio((p) => ({ ...p, value: e.target.value }))}
+                          onChange={(v) => setFormPrecio((p) => ({ ...p, value: v }))}
+                          sospechoso={esCambioSospechoso(
+                            precios[tipo]?.value != null ? Number(precios[tipo].value) : null,
+                            parsePrecioCOP(formPrecio.value),
+                          )}
                           className={inputClass}
                         />
                       </div>
@@ -220,12 +287,14 @@ export default function FormProducto({ producto, onGuardado, onCerrar }) {
                         {guardandoPrecio ? 'Guardando...' : 'Guardar precio'}
                       </button>
                       <button
-                        onClick={() => setEditandoPrecio(null)}
+                        onClick={() => { setEditandoPrecio(null); setConfirmarPrecio(null) }}
                         className="px-3 border border-gray-300 rounded-lg text-xs text-gray-400"
                       >
                         ×
                       </button>
                     </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">

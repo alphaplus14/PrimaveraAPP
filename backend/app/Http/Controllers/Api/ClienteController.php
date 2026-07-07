@@ -18,10 +18,13 @@ class ClienteController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'   => 'required|string|max:100',
-            'type'   => 'required|in:store,restaurant,market,individual',
-            'phone'  => 'nullable|string|max:20',
-            'active' => 'boolean',
+            'name'          => 'required|string|max:100',
+            'id_number'     => 'nullable|string|max:20',
+            'type'          => 'required|in:store,restaurant,market,individual',
+            'phone'         => 'nullable|string|max:20',
+            'address'       => 'nullable|string|max:255',
+            'allows_credit' => 'boolean',
+            'active'        => 'boolean',
         ]);
 
         return response()->json(['data' => Cliente::create($data)], 201);
@@ -35,10 +38,13 @@ class ClienteController extends Controller
     public function update(Request $request, Cliente $cliente)
     {
         $data = $request->validate([
-            'name'   => 'sometimes|string|max:100',
-            'type'   => 'sometimes|in:store,restaurant,market,individual',
-            'phone'  => 'nullable|string|max:20',
-            'active' => 'boolean',
+            'name'          => 'sometimes|string|max:100',
+            'id_number'     => 'nullable|string|max:20',
+            'type'          => 'sometimes|in:store,restaurant,market,individual',
+            'phone'         => 'nullable|string|max:20',
+            'address'       => 'nullable|string|max:255',
+            'allows_credit' => 'boolean',
+            'active'        => 'boolean',
         ]);
 
         $cliente->update($data);

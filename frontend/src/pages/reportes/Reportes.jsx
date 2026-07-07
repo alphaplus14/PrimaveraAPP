@@ -5,12 +5,16 @@ import {
   getReporteMovimientos,
   getReporteRentabilidad,
   getReporteLabores,
+  getReporteOrigen,
   rangoPreset,
 } from '../../api/reportes'
 import { getProductos } from '../../api/productos'
 import { useApi } from '../../hooks/useApi'
 import Paginacion from '../../components/ui/Paginacion'
-import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL } from '../../constants/enums'
+import GraficoVentasProducto from '../../components/reportes/GraficoVentasProducto'
+import GraficoRentabilidad from '../../components/reportes/GraficoRentabilidad'
+import GraficoOrigen from '../../components/reportes/GraficoOrigen'
+import { MOVEMENT_TYPE_LABEL, SALE_TYPE_LABEL, CATEGORY_LABEL } from '../../constants/enums'
 import { formatFechaCorta } from '../../lib/dashboard'
 
 const POR_PAGINA = 12
@@ -23,6 +27,7 @@ const TABS = [
   { id: 'ventas',        label: 'Ventas',        icon: '💰' },
   { id: 'compras',       label: 'Compras',       icon: '🛒' },
   { id: 'rentabilidad',  label: 'Rentabilidad', icon: '📈' },
+  { id: 'origen',        label: 'Origen',       icon: '🌱' },
   { id: 'labores',       label: 'Cosechas',     icon: '🧺' },
   { id: 'movimientos',   label: 'Movimientos',   icon: '📋' },
 ]
@@ -43,6 +48,8 @@ export default function Reportes() {
   const [cargandoRentabilidad, setCargandoRentabilidad] = useState(false)
   const [labores, setLabores] = useState({ data: null, meta: null })
   const [cargandoLabores, setCargandoLabores] = useState(false)
+  const [origen, setOrigen] = useState({ rows: [], meta: null })
+  const [cargandoOrigen, setCargandoOrigen] = useState(false)
   const [cultivoFiltro, setCultivoFiltro] = useState('')
   const [paginas, setPaginas] = useState({})
 
@@ -60,6 +67,7 @@ export default function Reportes() {
   const fetchDatos = useCallback(() => {
     if (tab === 'rentabilidad') return Promise.resolve({ data: { data: null } })
     if (tab === 'labores') return Promise.resolve({ data: { data: null } })
+    if (tab === 'origen') return Promise.resolve({ data: { data: null } })
     if (tab === 'ventas')      return getReporteVentas(rango)
     if (tab === 'compras')     return getReporteCompras(rango)
     if (tab === 'movimientos') return getReporteMovimientos({ ...rango, product_id: productoFiltro || undefined })
@@ -102,6 +110,23 @@ export default function Reportes() {
     if (tab === 'labores') cargarLabores()
   }, [tab, cargarLabores])
 
+  const cargarOrigen = useCallback(() => {
+    setCargandoOrigen(true)
+    getReporteOrigen({
+      ...rango,
+      product_id: productoFiltro || undefined,
+    })
+      .then(({ data }) => {
+        setOrigen({ rows: data.data ?? [], meta: data.meta ?? null })
+      })
+      .catch(() => setOrigen({ rows: [], meta: null }))
+      .finally(() => setCargandoOrigen(false))
+  }, [rango, productoFiltro])
+
+  useEffect(() => {
+    if (tab === 'origen') cargarOrigen()
+  }, [tab, cargarOrigen])
+
   const aplicarPreset = (id) => {
     setPresetActivo(id)
     setRango(rangoPreset(id))
@@ -110,6 +135,7 @@ export default function Reportes() {
   const handleBuscar = () => {
     if (tab === 'rentabilidad') cargarRentabilidad()
     else if (tab === 'labores') cargarLabores()
+    else if (tab === 'origen') cargarOrigen()
     else recargar()
   }
 
@@ -130,7 +156,15 @@ export default function Reportes() {
   const metaRentabilidad = tab === 'rentabilidad' ? rentabilidad.meta : null
   const datosLabores = tab === 'labores' ? (labores.data ?? { tasks: [], by_crop: [], by_date: [] }) : null
   const metaLabores = tab === 'labores' ? labores.meta : null
-  const cargandoVista = tab === 'rentabilidad' ? cargandoRentabilidad : tab === 'labores' ? cargandoLabores : cargando
+  const datosOrigen = tab === 'origen' ? origen.rows : []
+  const metaOrigen = tab === 'origen' ? origen.meta : null
+  const cargandoVista = tab === 'rentabilidad'
+    ? cargandoRentabilidad
+    : tab === 'labores'
+      ? cargandoLabores
+      : tab === 'origen'
+        ? cargandoOrigen
+        : cargando
 
   // Compute summaries inline
   const totalVentasKg    = datosVentas.reduce((s, v) => s + Number(v.quantity_kg), 0)
@@ -155,6 +189,7 @@ export default function Reportes() {
   const pagVentasDetalle = paginarLista(datosVentas, paginaDe('ventas-detalle'))
   const pagComprasDetalle = paginarLista(datosCompras, paginaDe('compras-detalle'))
   const pagRentabilidad = paginarLista(datosRentabilidad, paginaDe('rentabilidad'))
+  const pagOrigen = paginarLista(datosOrigen, paginaDe('origen'))
   const pagLaboresCultivo = paginarLista(datosLabores?.by_crop ?? [], paginaDe('labores-cultivo'), POR_PAGINA_COSECHAS)
   const pagLaboresFecha = paginarLista(datosLabores?.by_date ?? [], paginaDe('labores-fecha'), POR_PAGINA_COSECHAS)
   const pagLaboresDetalle = paginarLista(datosLabores?.tasks ?? [], paginaDe('labores-detalle'), POR_PAGINA_COSECHAS)
@@ -223,7 +258,7 @@ export default function Reportes() {
           </button>
         </div>
 
-        {(tab === 'movimientos' || tab === 'rentabilidad') && (
+        {(tab === 'movimientos' || tab === 'rentabilidad' || tab === 'origen') && (
           <select
             value={productoFiltro}
             onChange={(e) => setProductoFiltro(e.target.value)}
@@ -285,6 +320,11 @@ export default function Reportes() {
                       : ''
                   }
                 >
+                  {ventasPorProductoLista.length > 0 && (
+                    <div className="sm:col-span-2">
+                      <GraficoVentasProducto datos={ventasPorProductoLista} />
+                    </div>
+                  )}
                   {ventasPorProductoLista.length > 0 && (
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-0">
                       <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
@@ -445,6 +485,8 @@ export default function Reportes() {
               )}
 
               {datosRentabilidad.length > 0 ? (
+                <div className="space-y-2">
+                  <GraficoRentabilidad rows={datosRentabilidad} meta={metaRentabilidad} />
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
                     Por producto ({datosRentabilidad.length})
@@ -474,8 +516,79 @@ export default function Reportes() {
                     irPagina={irPagina}
                   />
                 </div>
+                </div>
               ) : (
                 <EmptyState mensaje="Sin movimientos de venta o compra en este período" />
+              )}
+            </div>
+          )}
+
+          {/* ── TAB ORIGEN (producido vs comprado) ── */}
+          {tab === 'origen' && (
+            <div className="space-y-2">
+              <p className="text-[10px] text-gray-500 bg-green-50 border border-green-100 rounded-md px-2 py-1 leading-snug shrink-0">
+                Compara kg cosechados (labores) y kg comprados (reventa) por producto en el período.
+              </p>
+
+              {metaOrigen && (
+                <div className="grid grid-cols-3 gap-2 shrink-0">
+                  <div className="bg-white rounded-lg shadow-sm p-2 text-center">
+                    <p className="text-sm font-bold text-green-600 leading-tight">
+                      {Number(metaOrigen.harvest_kg).toFixed(1)}
+                    </p>
+                    <p className="text-[10px] text-gray-400">kg cosechados</p>
+                  </div>
+                  <div className="bg-white rounded-lg shadow-sm p-2 text-center">
+                    <p className="text-sm font-bold text-blue-600 leading-tight">
+                      {Number(metaOrigen.purchase_kg).toFixed(1)}
+                    </p>
+                    <p className="text-[10px] text-gray-400">kg comprados</p>
+                  </div>
+                  <div className="bg-white rounded-lg shadow-sm p-2 text-center">
+                    <p className="text-sm font-bold text-[#1a365d] leading-tight">
+                      {Number(metaOrigen.sales_kg).toFixed(1)}
+                    </p>
+                    <p className="text-[10px] text-gray-400">kg vendidos</p>
+                  </div>
+                </div>
+              )}
+
+              {datosOrigen.length > 0 ? (
+                <>
+                  <GraficoOrigen rows={datosOrigen} />
+                  <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <p className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+                      Detalle por producto ({datosOrigen.length})
+                    </p>
+                    <div className="divide-y divide-gray-50">
+                      {pagOrigen.items.map((r) => (
+                        <div key={r.product_id} className="px-2.5 py-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-gray-800 truncate">
+                              {r.product?.name ?? '—'}
+                            </p>
+                            <span className="text-[10px] text-gray-400 shrink-0">
+                              {CATEGORY_LABEL[r.product?.category] ?? r.product?.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums mt-0.5">
+                            <span className="text-green-700">{Number(r.harvest_kg).toFixed(1)} kg cosecha</span>
+                            <span className="text-blue-700">{Number(r.purchase_kg).toFixed(1)} kg compra</span>
+                            <span className="text-gray-600">{Number(r.sales_kg).toFixed(1)} kg venta</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <PiePaginacion
+                      clave="origen"
+                      pag={pagOrigen}
+                      sustantivo="producto"
+                      irPagina={irPagina}
+                    />
+                  </div>
+                </>
+              ) : (
+                <EmptyState mensaje="Sin cosechas, compras o ventas en este período" />
               )}
             </div>
           )}

@@ -13,6 +13,7 @@ const nav = [
   { to: '/inventario',        label: 'Inventario',       icon: '/assets/icons/inventario%20icon.png' },
   { to: '/compras',           label: 'Compras',          icon: '/assets/icons/compras%20icon.png' },
   { to: '/ventas',            label: 'Ventas',           icon: '/assets/icons/ventas%20icono.png' },
+  { to: '/creditos',          label: 'Créditos',         icon: '/assets/icons/ventas%20icono.png' },
   { to: '/transformaciones',  label: 'Transformaciones', icon: '/assets/icons/transformaciones%20icon.png' },
   { to: '/labores',           label: 'Labores',          icon: '/assets/icons/labores%20icono.png' },
   { to: '/reportes',          label: 'Reportes',         icon: '/assets/icons/reportes%20icono.png' },
@@ -116,7 +117,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: FLUX.bg }}>
+    <div className="h-screen max-h-screen flex overflow-hidden" style={{ backgroundColor: FLUX.bg }}>
       {/* Sidebar — visible en pantallas medianas en adelante */}
       <aside
         className={`hidden md:flex flex-col bg-white border-r border-slate-100 text-slate-700 transition-all duration-200 relative shrink-0 ${
@@ -213,7 +214,7 @@ export default function Layout() {
       </aside>
 
       {/* Contenido principal */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
         <Outlet />
       </main>
 

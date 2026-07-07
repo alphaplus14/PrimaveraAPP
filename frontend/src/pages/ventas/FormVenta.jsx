@@ -3,6 +3,8 @@ import { crearVenta, actualizarVenta, getClientes, crearCliente } from '../../ap
 import { getProductos, getPrecioActual } from '../../api/productos'
 import { getInventario } from '../../api/inventario'
 import SelectBuscable from '../../components/ui/SelectBuscable'
+import InputPrecioCOP from '../../components/ui/InputPrecioCOP'
+import { parsePrecioCOP } from '../../lib/precios'
 
 const hoy = () => new Date().toISOString().split('T')[0]
 const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
@@ -36,6 +38,11 @@ export default function FormVenta({ venta, onGuardado, onCerrar }) {
   const [error, setError] = useState(null)
   const [advertencias, setAdvertencias] = useState({})
   const [confirmarForzar, setConfirmarForzar] = useState(false)
+  const [nuevoCliente, setNuevoCliente] = useState(null)
+  const [formCliente, setFormCliente] = useState({
+    name: '', id_number: '', phone: '', address: '', allows_credit: false, type: 'individual',
+  })
+  const [pago, setPago] = useState({ is_credit: false, amount_paid: '' })
 
   const [cabecera, setCabecera] = useState({
     date: fechaInput(venta?.date),
@@ -112,25 +119,46 @@ export default function FormVenta({ venta, onGuardado, onCerrar }) {
     0,
   )
 
-  const handleCrearCliente = async (name) => {
+  const handleCrearCliente = (name) => {
+    setNuevoCliente(name)
+    setFormCliente({
+      name,
+      id_number: '',
+      phone: '',
+      address: '',
+      allows_credit: false,
+      type: 'individual',
+    })
+  }
+
+  const guardarNuevoCliente = async () => {
+    if (!formCliente.name.trim()) return
     try {
-      const { data } = await crearCliente({ name, type: 'individual' })
+      const { data } = await crearCliente(formCliente)
       setClientes((prev) => [...prev, data.data])
       setCabecera((c) => ({ ...c, customer_id: String(data.data.id) }))
+      setNuevoCliente(null)
     } catch {
       setError('No se pudo crear el cliente.')
     }
   }
 
-  const payloadLinea = (linea, forzar) => ({
-    date: cabecera.date,
-    customer_id: cabecera.customer_id,
-    product_id: linea.product_id,
-    sale_type: linea.sale_type,
-    quantity_kg: linea.quantity_kg,
-    unit_price: linea.unit_price,
-    force: forzar,
-  })
+  const payloadLinea = (linea, forzar) => {
+    const payload = {
+      date: cabecera.date,
+      customer_id: cabecera.customer_id,
+      product_id: linea.product_id,
+      sale_type: linea.sale_type,
+      quantity_kg: linea.quantity_kg,
+      unit_price: linea.unit_price,
+      force: forzar,
+      is_credit: pago.is_credit,
+    }
+    if (pago.is_credit) {
+      payload.amount_paid = parsePrecioCOP(pago.amount_paid) ?? 0
+    }
+    return payload
+  }
 
   const handleSubmit = async (forzar = false) => {
     setError(null)
@@ -190,6 +218,80 @@ export default function FormVenta({ venta, onGuardado, onCerrar }) {
             onCrear={handleCrearCliente}
           />
         </div>
+      </div>
+
+      {nuevoCliente !== null && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-orange-700">Nuevo cliente</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              placeholder="Nombre *"
+              value={formCliente.name}
+              onChange={(e) => setFormCliente((f) => ({ ...f, name: e.target.value }))}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              placeholder="Cédula"
+              value={formCliente.id_number}
+              onChange={(e) => setFormCliente((f) => ({ ...f, id_number: e.target.value }))}
+              className={inputClass}
+            />
+            <input
+              type="tel"
+              placeholder="Teléfono"
+              value={formCliente.phone}
+              onChange={(e) => setFormCliente((f) => ({ ...f, phone: e.target.value }))}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              placeholder="Dirección"
+              value={formCliente.address}
+              onChange={(e) => setFormCliente((f) => ({ ...f, address: e.target.value }))}
+              className={inputClass}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-600">
+            <input
+              type="checkbox"
+              checked={formCliente.allows_credit}
+              onChange={(e) => setFormCliente((f) => ({ ...f, allows_credit: e.target.checked }))}
+            />
+            Permite fiado
+          </label>
+          <div className="flex gap-2">
+            <button type="button" onClick={guardarNuevoCliente} className="flex-1 bg-[#f56523] text-white py-2 rounded-lg text-xs font-medium">
+              Guardar cliente
+            </button>
+            <button type="button" onClick={() => setNuevoCliente(null)} className="px-3 border border-gray-300 rounded-lg text-xs text-gray-500">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pago.is_credit}
+            onChange={(e) => setPago({ is_credit: e.target.checked, amount_paid: '' })}
+          />
+          Venta a crédito (fiado)
+        </label>
+        {pago.is_credit && (
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Abono inicial (opcional)</label>
+            <InputPrecioCOP
+              value={pago.amount_paid}
+              onChange={(v) => setPago((p) => ({ ...p, amount_paid: v }))}
+              placeholder="0"
+              className={inputClass}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

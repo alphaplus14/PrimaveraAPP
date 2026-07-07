@@ -11,6 +11,7 @@ use App\Models\Producto;
 use App\Models\Venta;
 use App\Support\HarvestTask;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ReporteController extends Controller
 {
@@ -128,6 +129,123 @@ class ReporteController extends Controller
                 'margin'         => $rows->sum('margin'),
                 'sales_kg'       => $rows->sum('sales_kg'),
                 'purchase_kg'    => $rows->sum('purchase_kg'),
+            ],
+        ]);
+    }
+
+    /**
+     * Producido (cosecha) vs comprado por producto en el período.
+     */
+    public function origen(Request $request)
+    {
+        $request->validate([
+            'desde'      => 'nullable|date',
+            'hasta'      => 'nullable|date|after_or_equal:desde',
+            'product_id' => 'nullable|exists:products,id',
+        ]);
+
+        $harvestQuery = Labor::with('workers')
+            ->where(function ($q) {
+                $q->where('task_type', 'like', 'Cosecha%')
+                    ->orWhere('task_type', 'like', 'cosecha%');
+            });
+
+        $salesQuery = Venta::query();
+        $purchasesQuery = Compra::query()
+            ->where('purchase_type', 'resale')
+            ->whereNotNull('product_id');
+
+        if ($request->filled('desde') && $request->filled('hasta')) {
+            $harvestQuery->whereBetween('date', [$request->desde, $request->hasta]);
+            $salesQuery->whereBetween('date', [$request->desde, $request->hasta]);
+            $purchasesQuery->whereBetween('date', [$request->desde, $request->hasta]);
+        }
+
+        if ($request->filled('product_id')) {
+            $salesQuery->where('product_id', $request->product_id);
+            $purchasesQuery->where('product_id', $request->product_id);
+        }
+
+        $harvestByCrop = [];
+        foreach ($harvestQuery->get() as $task) {
+            $crop = trim((string) $task->crop) ?: 'Sin cultivo';
+            $key  = Str::lower($crop);
+            $kg   = (float) $task->workers->sum('quantity_kg');
+            $harvestByCrop[$key] = ($harvestByCrop[$key] ?? 0) + $kg;
+        }
+
+        $salesByProduct = $salesQuery
+            ->selectRaw('product_id, SUM(quantity_kg) as sales_kg, SUM(total) as sales_total')
+            ->groupBy('product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $purchasesByProduct = $purchasesQuery
+            ->selectRaw('product_id, SUM(quantity_kg) as purchase_kg, SUM(total) as purchase_total')
+            ->groupBy('product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $productIds = $salesByProduct->keys()
+            ->merge($purchasesByProduct->keys())
+            ->unique()
+            ->values();
+
+        if ($request->filled('product_id')) {
+            $productIds = collect([(int) $request->product_id]);
+        } else {
+            $productIds = Producto::where('active', true)->pluck('id')
+                ->merge($productIds)
+                ->unique()
+                ->values();
+        }
+
+        $products = Producto::whereIn('id', $productIds)->get()->keyBy('id');
+
+        $rows = $productIds->map(function ($productId) use ($salesByProduct, $purchasesByProduct, $products, $harvestByCrop) {
+            $product   = $products->get($productId);
+            $sales     = $salesByProduct->get($productId);
+            $purchases = $purchasesByProduct->get($productId);
+            $nameKey   = $product ? Str::lower(trim($product->name)) : '';
+
+            $harvestKg = 0.0;
+            if ($nameKey !== '') {
+                foreach ($harvestByCrop as $cropKey => $kg) {
+                    if ($cropKey === $nameKey || str_contains($cropKey, $nameKey) || str_contains($nameKey, $cropKey)) {
+                        $harvestKg += $kg;
+                    }
+                }
+            }
+
+            $salesKg     = (float) ($sales->sales_kg ?? 0);
+            $purchaseKg  = (float) ($purchases->purchase_kg ?? 0);
+            $salesTotal  = (float) ($sales->sales_total ?? 0);
+            $purchaseTotal = (float) ($purchases->purchase_total ?? 0);
+
+            return [
+                'product_id'      => $productId,
+                'product'         => $product ? [
+                    'id'       => $product->id,
+                    'name'     => $product->name,
+                    'category' => $product->category,
+                ] : null,
+                'harvest_kg'      => round($harvestKg, 3),
+                'purchase_kg'     => $purchaseKg,
+                'sales_kg'        => $salesKg,
+                'purchase_total'  => $purchaseTotal,
+                'sales_total'     => $salesTotal,
+            ];
+        })
+            ->filter(fn ($row) => $row['harvest_kg'] > 0 || $row['purchase_kg'] > 0 || $row['sales_kg'] > 0)
+            ->sortByDesc('sales_kg')
+            ->values();
+
+        return response()->json([
+            'data' => $rows,
+            'meta' => [
+                'harvest_kg'  => $rows->sum('harvest_kg'),
+                'purchase_kg' => $rows->sum('purchase_kg'),
+                'sales_kg'    => $rows->sum('sales_kg'),
             ],
         ]);
     }

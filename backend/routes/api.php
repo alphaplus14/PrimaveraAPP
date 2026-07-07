@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\InsumoController;
 use App\Http\Controllers\Api\LaborController;
 use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\TwoFactorController;
+use App\Http\Controllers\Api\CreditoController;
 use App\Http\Controllers\Api\PriceReviewController;
 
 // Autenticación pública (con límite de intentos para frenar fuerza bruta)
@@ -63,6 +64,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('proveedores', ProveedorController::class);
     Route::apiResource('clientes', ClienteController::class);
 
+    // Créditos / fiado
+    Route::get('creditos', [CreditoController::class, 'index']);
+    Route::post('creditos/abonos', [CreditoController::class, 'storePayment']);
+
     // Compras y ventas
     Route::apiResource('compras', CompraController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::apiResource('ventas', VentaController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
@@ -80,5 +85,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('reportes/inventario', [ReporteController::class, 'inventario']);
     Route::get('reportes/movimientos', [ReporteController::class, 'movimientos']);
     Route::get('reportes/rentabilidad', [ReporteController::class, 'rentabilidad']);
+    Route::get('reportes/origen', [ReporteController::class, 'origen']);
     Route::get('reportes/labores', [ReporteController::class, 'labores']);
 });
