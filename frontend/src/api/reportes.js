@@ -1,13 +1,9 @@
 import client from './client'
-
-const isoLocal = (d) => {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
+import { isoLocal, hoyLocal } from '../lib/fechas'
 
 // Usado por Dashboard — reportes sí filtran por fecha (ventas/compras index no)
 export const getResumenHoy = () => {
-  const hoy = isoLocal(new Date())
+  const hoy = hoyLocal()
   const params = { desde: hoy, hasta: hoy }
   return Promise.all([
     client.get('/reportes/ventas', { params }),
@@ -29,9 +25,7 @@ export const getVentasUltimasSemanas = (semanas = 8) => {
   const hoy = new Date()
   const desde = new Date(hoy)
   desde.setDate(hoy.getDate() - semanas * 7)
-  const pad = (n) => String(n).padStart(2, '0')
-  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  return getReporteVentas({ desde: iso(desde), hasta: iso(hoy) })
+  return getReporteVentas({ desde: isoLocal(desde), hasta: isoLocal(hoy) })
 }
 
 // Helpers de fecha
@@ -40,8 +34,7 @@ export const formatFecha = (iso) =>
 
 export const rangoPreset = (preset) => {
   const hoy = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const iso = (d) => isoLocal(d)
 
   switch (preset) {
     case 'hoy':

@@ -9,7 +9,9 @@ import {
 } from '../../lib/taskTypes'
 import { PAYMENT_MODE_LABEL } from '../../constants/enums'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 
 const fechaInput = (valor) => {
   if (!valor) return hoy()

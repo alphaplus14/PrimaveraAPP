@@ -14,7 +14,9 @@ import {
   labelTipoPrecio,
 } from '../../lib/precios'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 
 const TIPO_PRECIO_LABEL = { retail: 'Detal', wholesale: 'Mayorista' }
 

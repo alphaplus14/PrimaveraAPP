@@ -5,7 +5,9 @@ import { getInsumos, crearInsumo } from '../../api/labores'
 import SelectBuscable from '../../components/ui/SelectBuscable'
 import { SUPPLY_TYPE_LABEL } from '../../constants/enums'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
 
 const lineaVacia = () => ({

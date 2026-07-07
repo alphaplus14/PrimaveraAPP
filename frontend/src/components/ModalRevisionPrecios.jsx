@@ -17,7 +17,9 @@ import {
   validarPreciosEntrada,
 } from '../lib/precios'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../lib/fechas'
+
+const hoy = hoyLocal
 const POR_PAGINA = 10
 
 export default function ModalRevisionPrecios({ onCerrar, onCompletado }) {

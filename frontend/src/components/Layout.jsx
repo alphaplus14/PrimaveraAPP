@@ -22,13 +22,15 @@ const nav = [
 const STORAGE_SIDEBAR = 'primavera-sidebar-collapsed'
 const STORAGE_MOBILE_NAV = 'primavera-mobile-nav-open'
 
+import { hoyLocal } from '../lib/fechas'
+
 const dismissPreciosHoy = () => {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLocal()
   sessionStorage.setItem(`precios_modal_dismissed_${hoy}`, '1')
 }
 
 const preciosDismissedHoy = () => {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLocal()
   return sessionStorage.getItem(`precios_modal_dismissed_${hoy}`) === '1'
 }
 

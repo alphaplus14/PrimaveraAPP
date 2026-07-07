@@ -4,10 +4,8 @@ import { getProductos, getPrecioActual } from '../../api/productos'
 import { getInventario } from '../../api/inventario'
 import SelectBuscable from '../../components/ui/SelectBuscable'
 import InputPrecioCOP from '../../components/ui/InputPrecioCOP'
-import { parsePrecioCOP } from '../../lib/precios'
-
-const hoy = () => new Date().toISOString().split('T')[0]
-const fechaInput = (valor) => (valor ? String(valor).split('T')[0] : hoy())
+import { parsePrecioCOP, formatPrecioInput } from '../../lib/precios'
+import { hoyLocal, fechaInput } from '../../lib/fechas'
 
 const lineaVacia = () => ({
   id: Math.random(),
@@ -42,7 +40,13 @@ export default function FormVenta({ venta, onGuardado, onCerrar }) {
   const [formCliente, setFormCliente] = useState({
     name: '', id_number: '', phone: '', address: '', allows_credit: false, type: 'individual',
   })
-  const [pago, setPago] = useState({ is_credit: false, amount_paid: '' })
+  const [pago, setPago] = useState(() => ({
+    is_credit: venta?.is_credit ?? false,
+    amount_paid:
+      venta?.is_credit && venta?.amount_paid != null
+        ? formatPrecioInput(String(venta.amount_paid))
+        : '',
+  }))
 
   const [cabecera, setCabecera] = useState({
     date: fechaInput(venta?.date),
@@ -169,6 +173,14 @@ export default function FormVenta({ venta, onGuardado, onCerrar }) {
     if (lineas.some((l) => !l.product_id || !l.quantity_kg || !l.unit_price)) {
       setError('Completa todos los campos de cada línea.')
       return
+    }
+
+    if (pago.is_credit) {
+      const cliente = clientes.find((c) => String(c.id) === String(cabecera.customer_id))
+      if (!cliente?.allows_credit) {
+        setError('Este cliente no tiene habilitado el fiado.')
+        return
+      }
     }
 
     const hayAdvertencias = Object.keys(advertencias).length > 0

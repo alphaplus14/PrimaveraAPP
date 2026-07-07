@@ -14,21 +14,25 @@ class CreditoController extends Controller
 {
     public function index(): JsonResponse
     {
-        $clientes = Cliente::with(['sales' => fn ($q) => $q->with('product')->orderBy('date')])
+        $clientes = Cliente::with([
+            'sales' => fn ($q) => $q->with('product')
+                ->where('is_credit', true)
+                ->orderBy('date'),
+        ])
             ->orderBy('name')
             ->get()
             ->map(function (Cliente $cliente) {
                 $ventasCredito = $cliente->sales->filter(fn (Venta $v) => $this->saldoVenta($v) > 0.001);
 
                 return [
-                    'id'           => $cliente->id,
-                    'name'         => $cliente->name,
-                    'id_number'    => $cliente->id_number,
-                    'phone'        => $cliente->phone,
-                    'address'      => $cliente->address,
-                    'allows_credit'=> $cliente->allows_credit,
-                    'balance'      => round($ventasCredito->sum(fn (Venta $v) => $this->saldoVenta($v)), 2),
-                    'open_sales'   => $ventasCredito->map(fn (Venta $v) => [
+                    'id'            => $cliente->id,
+                    'name'          => $cliente->name,
+                    'id_number'     => $cliente->id_number,
+                    'phone'         => $cliente->phone,
+                    'address'       => $cliente->address,
+                    'allows_credit' => $cliente->allows_credit,
+                    'balance'       => round($ventasCredito->sum(fn (Venta $v) => $this->saldoVenta($v)), 2),
+                    'open_sales'    => $ventasCredito->map(fn (Venta $v) => [
                         'id'          => $v->id,
                         'date'        => $v->date->toDateString(),
                         'total'       => (float) $v->total,
@@ -61,6 +65,31 @@ class CreditoController extends Controller
 
         $cliente = Cliente::findOrFail($data['customer_id']);
         $restante = (float) $data['amount'];
+        $saldoTotalCliente = $this->saldoCliente($cliente);
+
+        if ($saldoTotalCliente <= 0.001) {
+            return response()->json([
+                'message' => 'Este cliente no tiene saldo pendiente.',
+            ], 422);
+        }
+
+        if ($restante > $saldoTotalCliente + 0.001) {
+            return response()->json([
+                'message' => 'El abono supera el saldo pendiente del cliente.',
+            ], 422);
+        }
+
+        if (! empty($data['sale_id'])) {
+            $venta = Venta::where('customer_id', $cliente->id)
+                ->where('is_credit', true)
+                ->find($data['sale_id']);
+
+            if (! $venta) {
+                return response()->json([
+                    'message' => 'La venta seleccionada no es válida para abono.',
+                ], 422);
+            }
+        }
 
         $payment = DB::transaction(function () use ($data, $cliente, &$restante) {
             $payment = PagoCredito::create([
@@ -72,13 +101,16 @@ class CreditoController extends Controller
             ]);
 
             if (! empty($data['sale_id'])) {
-                $venta = Venta::where('customer_id', $cliente->id)->findOrFail($data['sale_id']);
+                $venta = Venta::where('customer_id', $cliente->id)
+                    ->where('is_credit', true)
+                    ->findOrFail($data['sale_id']);
                 $saldo = $this->saldoVenta($venta);
                 $aplicar = min($restante, $saldo);
                 $venta->update(['amount_paid' => (float) ($venta->amount_paid ?? 0) + $aplicar]);
                 $restante -= $aplicar;
             } else {
                 $ventas = Venta::where('customer_id', $cliente->id)
+                    ->where('is_credit', true)
                     ->orderBy('date')
                     ->orderBy('id')
                     ->get();
@@ -106,15 +138,21 @@ class CreditoController extends Controller
         ], 201);
     }
 
+    private function saldoCliente(Cliente $cliente): float
+    {
+        return (float) Venta::where('customer_id', $cliente->id)
+            ->where('is_credit', true)
+            ->get()
+            ->sum(fn (Venta $v) => $this->saldoVenta($v));
+    }
+
     private function saldoVenta(Venta $venta): float
     {
-        if (! $venta->is_credit && ($venta->amount_paid === null || (float) $venta->amount_paid >= (float) $venta->total)) {
+        if (! $venta->is_credit) {
             return 0.0;
         }
 
-        $pagado = $venta->is_credit
-            ? (float) ($venta->amount_paid ?? 0)
-            : (float) ($venta->amount_paid ?? $venta->total);
+        $pagado = (float) ($venta->amount_paid ?? 0);
 
         return max(0, (float) $venta->total - $pagado);
     }

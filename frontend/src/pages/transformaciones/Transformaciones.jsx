@@ -8,7 +8,9 @@ import { formatFechaCorta } from '../../lib/dashboard'
 
 const POR_PAGINA = 10
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 const inicioMes = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`

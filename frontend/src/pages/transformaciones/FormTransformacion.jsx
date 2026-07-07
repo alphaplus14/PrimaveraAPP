@@ -5,7 +5,9 @@ import { getProductos } from '../../api/productos'
 import { getInventario } from '../../api/inventario'
 import SelectBuscable from '../../components/ui/SelectBuscable'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 
 export default function FormTransformacion({ onGuardado, onCerrar }) {
   const [frutas, setFrutas] = useState([])

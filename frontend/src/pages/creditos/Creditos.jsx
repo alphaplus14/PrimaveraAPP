@@ -4,7 +4,9 @@ import Modal from '../../components/ui/Modal'
 import InputPrecioCOP from '../../components/ui/InputPrecioCOP'
 import { parsePrecioCOP } from '../../lib/precios'
 
-const hoy = () => new Date().toISOString().split('T')[0]
+import { hoyLocal } from '../../lib/fechas'
+
+const hoy = hoyLocal
 
 const formatCOP = (v) =>
   Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
@@ -69,6 +71,12 @@ export default function Creditos() {
     <div className="p-4 md:p-6 pb-24 md:pb-6">
       <h2 className="text-xl font-bold text-[#1a365d] mb-1">Créditos / Fiado</h2>
       <p className="text-sm text-gray-500 mb-4">Clientes con saldo pendiente y abonos.</p>
+
+      {error && !abonoCliente && (
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+          {error}
+        </p>
+      )}
 
       {meta && (
         <div className="bg-white rounded-xl border border-amber-100 shadow-sm p-4 mb-4 text-center">

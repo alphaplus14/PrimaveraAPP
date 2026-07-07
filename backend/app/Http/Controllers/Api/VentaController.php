@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Compra;
+use App\Models\Cliente;
 use App\Models\Venta;
 use App\Services\InventarioTransaccionService;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +41,10 @@ class VentaController extends Controller
     {
         $data = $this->validatedSale($request);
 
+        if ($response = $this->creditValidationResponse($data)) {
+            return $response;
+        }
+
         if ($response = $this->stockWarningResponse($data)) {
             return $response;
         }
@@ -59,12 +63,18 @@ class VentaController extends Controller
     {
         $data = $this->validatedSale($request);
 
+        if ($response = $this->creditValidationResponse($data, $venta)) {
+            return $response;
+        }
+
         if ($response = $this->stockWarningResponse($data, $venta)) {
             return $response;
         }
 
         $sale = DB::transaction(function () use ($data, $venta) {
             $this->inventario->revertirVenta($venta);
+
+            $total = (float) $data['quantity_kg'] * (float) $data['unit_price'];
 
             $venta->update([
                 'date'        => $data['date'],
@@ -73,10 +83,10 @@ class VentaController extends Controller
                 'quantity_kg' => $data['quantity_kg'],
                 'sale_type'   => $data['sale_type'],
                 'unit_price'  => $data['unit_price'],
-                'total'       => $data['quantity_kg'] * $data['unit_price'],
+                'total'       => $total,
                 'forced'      => $data['forced'] ?? false,
                 'is_credit'   => $data['is_credit'] ?? false,
-                'amount_paid' => $this->resolveAmountPaid($data),
+                'amount_paid' => $this->resolveAmountPaid($data, $venta),
             ]);
 
             $this->inventario->aplicarVenta($venta->fresh());
@@ -117,6 +127,40 @@ class VentaController extends Controller
         return $data;
     }
 
+    private function creditValidationResponse(array $data, ?Venta $venta = null): ?JsonResponse
+    {
+        if (! ($data['is_credit'] ?? false)) {
+            return null;
+        }
+
+        $cliente = Cliente::find($data['customer_id']);
+        if (! $cliente?->allows_credit) {
+            return response()->json([
+                'message' => 'Este cliente no tiene habilitado el fiado.',
+            ], 422);
+        }
+
+        $total = (float) $data['quantity_kg'] * (float) $data['unit_price'];
+        $amountPaid = (float) ($data['amount_paid'] ?? 0);
+
+        if ($amountPaid > $total + 0.001) {
+            return response()->json([
+                'message' => 'El abono no puede superar el total de la venta.',
+            ], 422);
+        }
+
+        if ($venta && $venta->is_credit) {
+            $yaPagado = (float) ($venta->amount_paid ?? 0);
+            if ($amountPaid < $yaPagado - 0.001) {
+                return response()->json([
+                    'message' => 'No se puede reducir el abono por debajo del ya registrado.',
+                ], 422);
+            }
+        }
+
+        return null;
+    }
+
     private function stockWarningResponse(array $data, ?Venta $venta = null): ?JsonResponse
     {
         if ($data['forced'] ?? false) {
@@ -131,7 +175,7 @@ class VentaController extends Controller
 
         if ($disponible < $data['quantity_kg']) {
             return response()->json([
-                'message'       => 'Insufficient stock.',
+                'message'       => 'Stock insuficiente.',
                 'available'     => $disponible,
                 'stock_warning' => true,
             ], 422);
@@ -162,14 +206,21 @@ class VentaController extends Controller
         });
     }
 
-    private function resolveAmountPaid(array $data): float
+    private function resolveAmountPaid(array $data, ?Venta $venta = null): float
     {
         $total = (float) $data['quantity_kg'] * (float) $data['unit_price'];
 
-        if ($data['is_credit'] ?? false) {
-            return min($total, max(0, (float) ($data['amount_paid'] ?? 0)));
+        if (! ($data['is_credit'] ?? false)) {
+            return $total;
         }
 
-        return $total;
+        $solicitado = max(0, (float) ($data['amount_paid'] ?? 0));
+
+        if ($venta && $venta->is_credit) {
+            $yaPagado = (float) ($venta->amount_paid ?? 0);
+            $solicitado = max($solicitado, $yaPagado);
+        }
+
+        return min($total, $solicitado);
     }
 }

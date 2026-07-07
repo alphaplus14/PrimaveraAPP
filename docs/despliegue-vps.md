@@ -206,4 +206,4 @@ npm ci && npm run build
 - **Datos demo** desactivados automáticamente cuando `APP_ENV=production`.
 - **Admin inicial** parametrizable por `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
-Pendientes recomendados (no bloqueantes): tests automatizados, validación del token al arrancar el frontend, y un Error Boundary global en React.
+Pendientes recomendados (no bloqueantes): ampliar tests automatizados (créditos, reportes) y expiración de tokens Sanctum.

@@ -60,7 +60,7 @@ export default function Dashboard() {
       })
       .catch(() => {
         setDatos(null)
-        setErrorCarga('No se pudo conectar con el servidor. Verifica que el backend esté corriendo en el puerto 8000.')
+        setErrorCarga('No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.')
       })
       .finally(() => setCargando(false))
 
@@ -97,8 +97,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 text-center">
           <p className="text-sm text-slate-600 mb-2">{errorCarga ?? 'No hay datos disponibles.'}</p>
           <p className="text-xs text-slate-400">
-            En la carpeta <code className="text-slate-500">backend</code> ejecuta:{' '}
-            <code className="text-slate-500">php artisan serve</code>
+            Si el problema continúa, contacta al administrador del sistema.
           </p>
         </div>
       ) : (
